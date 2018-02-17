@@ -1,0 +1,10 @@
+
+Revenge of the SIT
+------------------
+
+A rewrite of the original Simple Issue Tracker. The issue tracker works
+with a text file that can be stored in version control. Text utilities
+must work on this textfile (diff/merge, etc) to allow the VCS (version
+control system) to manage the issues.
+
+
