@@ -141,7 +141,7 @@ void rotsit_del (rotsit_t *rs)
    free (rs);
 }
 
-void rotsit_dump (rotsit_t *rs, FILE *outf)
+void rotsit_dump (rotsit_t *rs, const char *id, FILE *outf)
 {
    if (!outf)
       outf = stdout;
@@ -151,14 +151,16 @@ void rotsit_dump (rotsit_t *rs, FILE *outf)
       return;
    }
 
-   fprintf (outf, "Data has [%zu] records\n", XVECT_LENGTH (rs->records));
+   fprintf (outf, "Data [%s] has [%zu] records\n", id,
+                                                  XVECT_LENGTH (rs->records));
+
    for (size_t i=0; i<XVECT_LENGTH (rs->records); i++) {
 
       rotrec_t *rr = XVECT_INDEX (rs->records, i);
-      fprintf (outf, "[r:%zu] ", i);
+      fprintf (outf, "[(%s):%zu] ", id, i);
 
       for (size_t j=0; j<XVECT_LENGTH (rr->fields); j++) {
-         fprintf (outf, "(%s)", XVECT_INDEX (rr->fields, j));
+         fprintf (outf, "(%s)", (char *)XVECT_INDEX (rr->fields, j));
       }
       fprintf (outf, "\n");
    }

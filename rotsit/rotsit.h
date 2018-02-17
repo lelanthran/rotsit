@@ -13,7 +13,7 @@ extern "C" {
 
    rotsit_t *rotsit_parse (char *input_buf);
    void rotsit_del (rotsit_t *rs);
-   void rotsit_dump (rotsit_t *rs, FILE *outf);
+   void rotsit_dump (rotsit_t *rs, const char *id, FILE *outf);
 
 #ifdef __cplusplus
 };
