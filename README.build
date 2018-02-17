@@ -1,0 +1,79 @@
+Universal Makefile-based build process
+======================================
+
+Copy these files to start a new C or C++ based project. The basic project
+must be composed of files ending in .c, .cpp or .h only. Each module must
+be in its own subdirectory, preferably with a source file that has a main
+function which can be used to test the module. The primary output of the
+build process is a static library file ('.a') and a dynamic or shared
+object library file ('.dll' on Windows or '.so' on POSIX).
+
+Each source file that implements main() must be named using the string
+'main' somewhere in the filename. All files that DO NOT have a 'main'
+string in the filename will be compiled into the library file. All
+executable files will have an extension. For Windows this extension is
+'.exe' and for all other systems this extension is '.elf'.
+
+The default target 'all' does nothing. The target 'debug' creates a
+library suffixed with 'd' before the extension and executables suffixed
+with '-d' before the extension. The target 'release' creates the libraries
+without a suffix and creates executables with a '-r' suffix before the
+extension.
+
+The makefile expects a posix environment under non-Windows-based
+platforms, and the standard Windows cmd.exe environment under
+Windows-based platforms. Cygwin-based platforms are not (yet) supported.
+Certain commands ($(RM), etc) are missing on Windows, these commands are
+provided as cmd.exe-compatible batch files.
+
+The Makefile uses the name of the program to determine what system it is
+executing under; usually it only differentiates between Windows and POSIX
+platforms using the existence of '.exe' in the filename. If there is no
+'.exe' in the filename then the makefile checks for the existence of
+'mingw32'. If both checks fail the makefile assumes a POSIX platform.
+
+Multiple library files are not supported - only a single library file is
+supported. All modules are linked into that single library file. Four
+formats of that library is produced:
+   libstaticd.a (static debug)
+   libstatic.a (static release)
+   libstaticd.so (shared debug)     libstaticd.dll (shared debug)
+   libstatic.so  (shared release)   libstatic.dll  (shared release)
+The library is produced in a directory whose name is determined from the
+compiler target architecture.
+
+The file VERSION at the root of the directory contains the version number
+to be used during building. It has to be updated manually by the developer
+before every release as it is included in the output filenames. You may
+choose to have this file generated using the command-line svn/git client
+and some grepping/cutting to grab the field containing the most recent
+version number of the current repository.
+
+The targets are:
+all
+   Does nothing interesting.
+
+debug
+   Links existing .o files into the library output files. If the .o
+   files do not exist they are created using the debug flags. Note:
+   you may want to do a 'clean' to ensure that the objects from a
+   previous 'release' build are not lying around.
+
+release
+   Links the existing .o files into the library output files.
+   If the .o files do not exist they are created using the release
+   flags. Note: you may need to do a 'clean' for the same reasons
+   given in 'debug' above.
+
+clean
+   Remove all the object files. Libraries and executables are not
+   removed.
+
+veryclean
+   Perform a 'clean' and also remove the library files and executables.
+
+documentation
+   Probably not implemented - this is for future development and
+   will, when implemented, run the automated documentation
+   generation tools.
+
