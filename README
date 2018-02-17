@@ -8,3 +8,16 @@ must work on this textfile (diff/merge, etc) to allow the VCS (version
 control system) to manage the issues.
 
 
+
+File format
+-----------
+
+The issues database is stored in a plain text file. No header exists for
+this file. The file consists of a list of records. Each records consists
+of a list of fields. All fields are plain ascii text only, with the bytes
+0x00 and 0x08 reserved for use by the program.
+
+Records are delimited by the character sequence "f\b\n". Fields are
+delimited by the character sequence "f\b".
+
+
