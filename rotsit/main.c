@@ -67,6 +67,61 @@ errorexit:
    return num_errors ? false : true;
 }
 
+static bool test_writer (void)
+{
+   bool error = true;
+
+   rotrec_t *rr = NULL;
+   FILE *outf = NULL;
+
+   rotsit_t *rs = rotsit_parse ("");
+   if (!rs) {
+      fprintf (stderr, "Object creation failed\n");
+      goto errorexit;
+   }
+
+   rr = rotrec_new ();
+   if (!rr) {
+      fprintf (stderr, "Out of memory\n");
+      goto errorexit;
+   }
+   rotsit_add_record (rs, rr);
+
+   rr = rotrec_new ();
+   if (!rr) {
+      fprintf (stderr, "Out of memory\n");
+      goto errorexit;
+   }
+   rotsit_add_record (rs, rr);
+
+   rr = rotrec_new ();
+   if (!rr) {
+      fprintf (stderr, "Out of memory\n");
+      goto errorexit;
+   }
+   rotsit_add_record (rs, rr);
+
+   outf = fopen ("rotsit.sitdb", "wb");
+   if (!outf) {
+     fprintf (stderr, "Unable to open [%s] for writing: %m\n", "rotsit.sitdb");
+     goto errorexit;
+   }
+
+   if (!rotsit_write (rs, outf)) {
+      fprintf (stderr, "Unable to write to outfile\n");
+      goto errorexit;
+   }
+   
+   error = false;
+
+errorexit:
+   if (outf)
+      fclose (outf);
+
+   rotsit_del (rs);
+   return !error;
+}
+
 int main (void)
 {
    size_t num_failures = 0;
@@ -79,6 +134,7 @@ int main (void)
 #define TESTFUNC(x)      { #x, x }
 
       TESTFUNC (test_parser),
+      TESTFUNC (test_writer),
 
 #undef TESTFUNC
 
