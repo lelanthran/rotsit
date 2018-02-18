@@ -50,29 +50,96 @@ errorexit:
 
 static uint32_t cmd_show (rotsit_t *rs, char *msg, const char **args)
 {
-   // TODO:
+   msg = msg;
+
+   uint32_t ret = 0x000000ff;
+   const char *id = args[1];
+   rotrec_t *rr = NULL;
+
+   if (!id) {
+      XERROR ("Expected an id for function [show], no id specified\n");
+      goto errorexit;
+   }
+
+   rr = rotsit_find_by_id (rs, id);
+   if (!rr) {
+      XERROR ("No record found with id [%s]\n", id);
+      goto errorexit;
+   }
+
+   rotrec_dump (rr, stdout);
+
+   ret = 0x00;
+
+errorexit:
+   return ret;
 }
 
 static uint32_t cmd_comment (rotsit_t *rs, char *msg, const char **args)
 {
-   // TODO:
+   uint32_t ret = 0x000001ff;
+   const char *id = args[1];
+   rotrec_t *rr = NULL;
+
+   if (!id) {
+      XERROR ("Expected an id for function [show], no id specified\n");
+      goto errorexit;
+   }
+
+   rr = rotsit_find_by_id (rs, id);
+   if (!rr) {
+      XERROR ("No record found with id [%s]\n", id);
+      goto errorexit;
+   }
+
+   if (!rotrec_add_comment (rr, msg)) {
+      XERROR ("Unable to add comment to record [%s]\n", id);
+      goto errorexit;
+   }
+
+   ret = 0x00000100;
+
+errorexit:
+   return ret;
 }
 
 static uint32_t cmd_dup (rotsit_t *rs, char *msg, const char **args)
 {
-   // TODO:
+   rs = rs; msg = msg; args = args;
+   return 0;
+}
+
+static uint32_t cmd_reopen (rotsit_t *rs, char *msg, const char **args)
+{
+   rs = rs; msg = msg; args = args;
+   return 0;
 }
 
 static uint32_t cmd_export (rotsit_t *rs, char *msg, const char **args)
 {
-   // TODO:
+   rs = rs; msg = msg; args = args;
+   return 0;
 }
 
 static uint32_t cmd_list (rotsit_t *rs, char *msg, const char **args)
 {
-   // TODO:
+   rs = rs; msg = msg; args = args;
+   return 0;
 }
 
+static bool needs_message (const char *command)
+{
+   static const char *cmds[] = {
+      "add", "comment", "dup", "close", "reopen",
+   };
+
+   for (size_t i=0; i<sizeof cmds/sizeof cmds[0]; i++) {
+      if (strcmp (cmds[i], command) == 0) {
+         return true;
+      }
+   }
+   return false;
+}
 
 static cmdfptr_t find_cmd (const char *name)
 {
@@ -84,14 +151,13 @@ static cmdfptr_t find_cmd (const char *name)
       { "show",      cmd_show    },
       { "comment",   cmd_comment },
       { "dup",       cmd_dup     },
+      { "reopen",    cmd_reopen  },
       { "export",    cmd_export  },
       { "list",      cmd_list    },
    };
 
    for (size_t i=0; i<sizeof cmds/sizeof cmds[0]; i++) {
       if (strcmp (cmds[i].name, name) == 0) {
-         // TODO: Remove this diagnostic
-         XLOG ("Found command '%s'\n", name);
          return cmds[i].fptr;
       }
    }
@@ -118,6 +184,7 @@ void print_help_msg (void)
 "commands:",
 "  add               Adds a new issue, $EDITOR used.",
 "  show <id>         Displays an issue.",
+"  reopen <id>       Reopens a closed issue, $EDITOR used",
 "  comment <id>      Adds a comment to an issue, $EDITOR used.",
 "  dup <id1> <id2>   Marks id1 as a duplicate of id2, $EDITOR used.",
 "  close <id>        Closes issue with id, $EDITOR used.",
@@ -250,6 +317,12 @@ int main (int argc, char **argv)
       goto errorexit;
    }
 
+   // If command specified needs a message, check that we have a message
+   // or use start the EDITOR so that the user can write a message.
+   if (needs_message (argv[cmdidx]) && !msg) {
+      // TODO: Start the editor
+   }
+
    // Execute the command - the reutrn value is 4 bytes:
    // ret[0] = return status (0=success)
    // ret[1] = object now dirty, command mutated the object
@@ -277,6 +350,7 @@ errorexit:
          XERROR ("Unable to write file [%s]: %m\n", dbfile);
       } else {
          rotsit_write (issues, outf);
+         XERROR ("WROTE FILE!!!!!!!!!!!!!!!!!!!!!!!!!!!\n");
          fclose (outf);
       }
    }

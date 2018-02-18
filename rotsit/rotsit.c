@@ -249,6 +249,22 @@ rotrec_t *rotsit_get_record (rotsit_t *rs, uint32_t recnum)
    return XVECT_INDEX (rs->records, recnum);
 }
 
+rotrec_t *rotsit_find_by_id (rotsit_t *rs, const char *id)
+{
+   if (!rs || !id)
+      return NULL;
+
+   for (size_t i=0; i<XVECT_LENGTH (rs->records); i++) {
+
+      rotrec_t *rec = XVECT_INDEX (rs->records, i);
+
+      if (strcmp (XVECT_INDEX (rec->fields, RF_GUID), id)==0)
+         return rec;
+   }
+
+   return NULL;
+}
+
 bool rotsit_add_record (rotsit_t *rs, rotrec_t *rr)
 {
    if (!rs || !rr)
@@ -349,21 +365,21 @@ rotrec_t *rotrec_new (const char *msg)
    if (!str_guid) {
       goto errorexit;
    }
-   XVECT_INDEX (ret->fields, 0) = str_guid;
+   XVECT_INDEX (ret->fields, RF_GUID) = str_guid;
 
    // Third field/2 must be set to the current user
    char *str_user = make_username ();
    if (!str_user) {
       goto errorexit;
    }
-   XVECT_INDEX (ret->fields, 2) = str_user;
+   XVECT_INDEX (ret->fields, RF_OPENED_BY) = str_user;
 
    // Fourth field/3 must be set to the current time
    char *str_time = make_time (0);
    if (!str_time) {
       goto errorexit;
    }
-   XVECT_INDEX (ret->fields, 3) = str_time;
+   XVECT_INDEX (ret->fields, RF_OPENED_ON) = str_time;
 
    // Fifth field/4 must be set to the message
    char *str_msg = xstr_dup (msg);
@@ -371,8 +387,15 @@ rotrec_t *rotrec_new (const char *msg)
       XERROR ("Out of memory\n");
       goto errorexit;
    }
-   XVECT_INDEX (ret->fields, 4) = str_msg;
+   XVECT_INDEX (ret->fields, RF_OPENED_MSG) = str_msg;
 
+   // Set the status to OPEN
+   char *str_status = xstr_dup ("OPEN");
+   if (!str_status) {
+      XERROR ("Out of memory\n");
+      goto errorexit;
+   }
+   XVECT_INDEX (ret->fields, RF_STATUS) = str_status;
 
    error = false;
 errorexit:
@@ -456,5 +479,53 @@ errorexit:
    }
 
    return !error;
+}
+
+void rotrec_dump (rotrec_t *rr, FILE *outf)
+{
+   if (!outf)
+      outf = stdout;
+
+   if (!rr) {
+      fprintf (outf, "Cannot print a NULL rotrec_t data bject\n");
+      return;
+   }
+
+   fprintf (outf, "------------------------------------------------\n");
+   fprintf (outf, "[id: %s] [order: %s] [status: %s]\nOpened by [%s] on [%s]\n",
+                  (char *)XVECT_INDEX (rr->fields, RF_GUID),
+                  (char *)XVECT_INDEX (rr->fields, RF_ORDER),
+                  (char *)XVECT_INDEX (rr->fields, RF_STATUS),
+                  (char *)XVECT_INDEX (rr->fields, RF_OPENED_BY),
+                  (char *)XVECT_INDEX (rr->fields, RF_OPENED_ON));
+   // TODO: Use the assigned/assigned_by/assigned_to fields.
+   char *closed = XVECT_INDEX (rr->fields, RF_CLOSED_BY);
+   if (closed && *closed) {
+      fprintf (outf, "Closed by [%s] on [%s] with message: [%s]\n",
+                     (char *)XVECT_INDEX (rr->fields, RF_CLOSED_BY),
+                     (char *)XVECT_INDEX (rr->fields, RF_CLOSED_ON),
+                     (char *)XVECT_INDEX (rr->fields, RF_CLOSED_MSG));
+   }
+   char *duped = XVECT_INDEX (rr->fields, RF_DUP_BY);
+   if (duped && *duped) {
+      fprintf (outf, "Marked DUPLICATE of [%s] by [%s] with message: [%s]\n",
+                     (char *)XVECT_INDEX (rr->fields, RF_DUP_GUID),
+                     (char *)XVECT_INDEX (rr->fields, RF_DUP_BY),
+                     (char *)XVECT_INDEX (rr->fields, RF_DUP_MSG));
+   }
+   fprintf (outf, "** %s **\n",
+                  (char *)XVECT_INDEX (rr->fields, RF_OPENED_MSG));
+
+   fprintf (outf, "----- COMMENTS -----\n");
+
+   size_t comment_num = RF_LAST_FIELD;
+   while ((comment_num + 4) <= XVECT_LENGTH (rr->fields)) {
+      char *c_guid    = XVECT_INDEX (rr->fields, comment_num++);
+      char *c_user    = XVECT_INDEX (rr->fields, comment_num++);
+      char *c_time    = XVECT_INDEX (rr->fields, comment_num++);
+      char *c_comment = XVECT_INDEX (rr->fields, comment_num++);
+      fprintf (outf, "++ [comment: %s] by [%s] on [%s]\n%s\n",
+               c_guid, c_user, c_time, c_comment);
+   }
 }
 

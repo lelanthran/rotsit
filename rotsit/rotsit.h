@@ -18,15 +18,16 @@
 #define RF_OPENED_BY    (2)
 #define RF_OPENED_ON    (3)
 #define RF_OPENED_MSG   (4)
-#define RF_ASSIGNED_BY  (5)
-#define RF_ASSIGNED_TO  (6)
-#define RF_ASSIGNED_ON  (7)
-#define RF_CLOSED_BY    (8)
-#define RF_CLOSED_ON    (9)
-#define RF_CLOSED_MSG   (10)
-#define RF_DUP_BY       (11)
-#define RF_DUP_GUID     (12)
-#define RF_DUP_MSG      (13)
+#define RF_STATUS       (5)
+#define RF_ASSIGNED_BY  (6)
+#define RF_ASSIGNED_TO  (7)
+#define RF_ASSIGNED_ON  (8)
+#define RF_CLOSED_BY    (9)
+#define RF_CLOSED_ON    (10)
+#define RF_CLOSED_MSG   (11)
+#define RF_DUP_BY       (12)
+#define RF_DUP_GUID     (13)
+#define RF_DUP_MSG      (14)
 #define RF_LAST_FIELD   RF_DUP_MSG
 
 // From field RF_DUP_MSG onwards on all the remaining fields in a record
@@ -51,6 +52,8 @@ extern "C" {
    uint32_t rotsit_count_records (rotsit_t *rs);
    rotrec_t *rotsit_get_record (rotsit_t *rs, uint32_t recnum);
 
+   rotrec_t *rotsit_find_by_id (rotsit_t *rs, const char *id);
+
    bool rotsit_add_record (rotsit_t *rs, rotrec_t *rr);
 
    rotrec_t *rotrec_new (const char *msg);
@@ -59,6 +62,7 @@ extern "C" {
    bool rotrec_set_field (rotrec_t *rr, uint8_t fieldnum, const char *src);
    bool rotrec_add_comment (rotrec_t *rr, const char *comment);
 
+   void rotrec_dump (rotrec_t *rr, FILE *outf);
 
 #ifdef __cplusplus
 };
