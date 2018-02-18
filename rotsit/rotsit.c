@@ -11,6 +11,7 @@
 #include "xcrypto/xcrypto.h"
 
 #include "rotsit/rotsit.h"
+#include "pdate/pdate.h"
 
 #define RECORD_DELIM       ("f\b\n")
 #define FIELD_DELIM        ("f\b")
@@ -247,6 +248,29 @@ rotrec_t *rotsit_get_record (rotsit_t *rs, uint32_t recnum)
    }
 
    return XVECT_INDEX (rs->records, recnum);
+}
+
+rotrec_t **rotsit_filter (rotsit_t *rs, const char *from_time,
+                                        const char *to_time,
+                                        const char *status,
+                                        const char *from_order,
+                                        const char *to_order,
+                                        const char *by_owner,
+                                        const char *by_users,
+                                        const char *keyword)
+{
+   bool error = true;
+   xvector_t *results = NULL;
+   rotrec_t **ret = NULL;
+
+   error = false;
+
+errorexit:
+   if (!error) {
+      ret = xvector_native (results);
+   }
+   xvector_free (results);
+   return ret;
 }
 
 rotrec_t *rotsit_find_by_id (rotsit_t *rs, const char *id)

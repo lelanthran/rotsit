@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <ctype.h>
+#include <stdbool.h>
 
 #include "xstring/xstring.h"
 
@@ -23,7 +24,7 @@ int32_t strmonth (const char *string)
 {
    const char *months[] = {
       "jan", "feb", "mar", "apr",
-      "may", "jun", "jul", "aug", 
+      "may", "jun", "jul", "aug",
       "sep", "oct", "nov", "dec",
    };
    for (size_t i=0; i<sizeof months/sizeof months[0]; i++) {
@@ -46,6 +47,22 @@ int32_t clamp_day (int32_t month)
    return (month < 1 || month > 12) ? -1 : nr_days[month -1];
 }
 
+static bool is_DoW (const char *token)
+{
+   static const char *days[] = {
+"mo", "tu", "we", "th", "fr", "sa", "su",
+"mon", "tue", "wed", "thurs", "fri", "sat", "sun",
+"monday", "tueday", "wednesday", "thursday", "friday", "saturday", "sunday",
+   };
+
+   for (size_t i=0; i<sizeof days/sizeof days[0]; i++) {
+      if (strcmp (days[i], token)==0) {
+         return true;
+      }
+   }
+   return false;
+}
+
 enum pdate_errcode_t pdate_parse (const char *string, time_t *ret,
                                   bool fromdate)
 {
@@ -60,7 +77,7 @@ enum pdate_errcode_t pdate_parse (const char *string, time_t *ret,
    int32_t sec = -1;
    char *copy = xstr_dup (string);
    char **tokens = NULL;
-   uint32_t typed[6]; // More than 6 tokens and we return errorcode.
+   uint32_t typed[7]; // More than 6 tokens and we return errorcode.
 
    if (!copy) goto errorexit;
 
@@ -147,7 +164,7 @@ enum pdate_errcode_t pdate_parse (const char *string, time_t *ret,
          }
          tokens[i][0] = 0;
          s_sec = strchr (s_min+1, ':');
-         if (!s_sec) 
+         if (!s_sec)
             continue;
          if ((sscanf (s_sec+1, "%2i", &t_sec))==1) {
             if (sec!=-1) {
@@ -166,8 +183,10 @@ enum pdate_errcode_t pdate_parse (const char *string, time_t *ret,
       size_t toklen = strlen (tokens[i]);
       if (toklen==0)
          continue;
-      if ((sscanf (tokens[i], "%i", &tmpval))!=1) {
+      if ((sscanf (tokens[i], "%i", &tmpval))!=1 &&
+          (is_DoW (tokens[i])!=true)) {
          errcode = pdate_unknown_field;
+         printf (" ********************* Error spot #1 [%s]\n", tokens[i]);
          goto errorexit;
       }
       if (day==-1) {
@@ -213,7 +232,7 @@ enum pdate_errcode_t pdate_parse (const char *string, time_t *ret,
    }
 
    month--;
-   memset (&tm, 0, sizeof tm);
+   memset (tm, 0, sizeof *tm);
    year = year - 1900;
    tm->tm_sec = sec;
    tm->tm_min = min;
@@ -266,6 +285,7 @@ void pdate_test (void)
      "12 June 2016",
      "12 June ",
      "June 12",
+     "Tue June 12 12:59:05 2016",
      "Jun-12",
      "12 Jun 2016",
      "12 Jun, 2016",
