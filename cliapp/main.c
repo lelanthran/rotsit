@@ -137,8 +137,32 @@ static uint32_t cmd_export (rotsit_t *rs, char *msg, const char **args)
 
 static uint32_t cmd_list (rotsit_t *rs, char *msg, const char **args)
 {
-   rs = rs; msg = msg; args = args;
-   return 0;
+   const char *from_order = xcfg_get ("none", "from-order");
+   const char *to_order = xcfg_get ("none", "to-order");
+   const char *from_time = xcfg_get ("none", "from-time");
+   const char *to_time = xcfg_get ("none", "to-time");
+   const char *status = xcfg_get ("none", "status");
+   const char *owner = xcfg_get ("none", "by-owner");
+   const char *user = xcfg_get ("none", "by-user");
+   const char *keyword = xcfg_get ("none", "keyword");
+
+   msg = msg;
+   args = args;
+
+   rotrec_t **results = rotsit_filter (rs, from_time, to_time,
+                                           status,
+                                           from_order, to_order,
+                                           owner, user, keyword);
+   if (!results) {
+      XERROR ("Internal error in filer function\n");
+      return 0x00ff;
+   }
+
+   for (size_t i=0; results[i]; i++) {
+      rotrec_dump (results[i], stdout);
+   }
+   free (results);
+   return 0x0000;
 }
 
 static bool needs_message (const char *command)
@@ -212,7 +236,7 @@ void print_help_msg (void)
 "  --to-time=<time>        Only entries older than <time>",
 "  --status=<status,>      All entries matching cvs list in <status,>",
 "  --from-order=<order>    Only entries with ORDER newer than <order>",
-"  --to-id=<order>         Only entries with ORDER older than <order>",
+"  --to-order=<order>      Only entries with ORDER older than <order>",
 "  --keyword=<string>      Include entries which match <string>",
 "  --by-owner=<uname>      Only entries by <uname> (excludes comments)",
 "  --by-user=<uname>       Only entries by <uname> (comments only)",

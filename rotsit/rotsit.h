@@ -57,7 +57,7 @@ extern "C" {
                                            const char *from_order,
                                            const char *to_order,
                                            const char *by_owner,
-                                           const char *by_users,
+                                           const char *by_user,
                                            const char *keyword);
 
    rotrec_t *rotsit_find_by_id (rotsit_t *rs, const char *id);

@@ -23,7 +23,7 @@ enum pdate_errcode_t {
 extern "C" {
 #endif
 
-   enum pdate_errcode_t pdate_parse (const char *string, time_t *ret, 
+   enum pdate_errcode_t pdate_parse (const char *string, time_t *ret,
                                      bool fromdate);
    const char *pdate_errmsg (enum pdate_errcode_t pd);
    void pdate_test (void);
