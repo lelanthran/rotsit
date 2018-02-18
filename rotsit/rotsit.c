@@ -200,6 +200,7 @@ bool rotsit_write (rotsit_t *rs, FILE *outf)
       rotrec_t *rec = XVECT_INDEX (rs->records, i);
       for (size_t j=0; j<XVECT_LENGTH (rec->fields); j++) {
          char *field = XVECT_INDEX (rec->fields, j);
+
          if (field && j==RF_ORDER) {
             uint32_t order;
             if (sscanf (field, "%x", &order)!=1) {
@@ -209,6 +210,7 @@ bool rotsit_write (rotsit_t *rs, FILE *outf)
             if (order > order_max)
                order_max = order;
          }
+
          bool free_field = false;
          if (!field && j==RF_ORDER) {
             field = malloc (2 + 9 + 1);
@@ -219,7 +221,9 @@ bool rotsit_write (rotsit_t *rs, FILE *outf)
             free_field = true;
             sprintf (field, "0x%x", order_max++);
          }
-         fprintf (outf, "%s%s", field, FIELD_DELIM);
+
+         char *tmpf = field ? field : "";
+         fprintf (outf, "%s%s", tmpf, FIELD_DELIM);
          if (free_field) {
             free (field);
          }
