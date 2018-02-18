@@ -59,10 +59,12 @@ extern "C" {
    rotrec_t *rotrec_new (const char *msg);
    void rotrec_del (rotrec_t *rec);
 
-   bool rotrec_set_field (rotrec_t *rr, uint8_t fieldnum, const char *src);
    bool rotrec_add_comment (rotrec_t *rr, const char *comment);
+   bool rotrec_close (rotrec_t *rr, const char *message);
+   bool rotrec_dup (rotrec_t *rr, const char *id);
+   bool rotrec_reopen (rotrec_t *rr, const char *message);
 
-   void rotrec_dump (rotrec_t *rr, FILE *outf);
+   bool rotrec_dump (rotrec_t *rr, FILE *outf);
 
 #ifdef __cplusplus
 };

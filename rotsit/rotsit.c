@@ -406,36 +406,14 @@ errorexit:
    return ret;
 }
 
-bool rotrec_set_field (rotrec_t *rr, uint8_t fieldnum, const char *src)
-{
-   char *tmp = NULL;
-
-   if (!rr)
-      return false;
-
-   if (fieldnum > RF_LAST_FIELD)
-      return false;
-
-   if (fieldnum <= RF_ORDER)
-      return false;
-
-   tmp = xstr_dup (src);
-   if (!tmp) {
-      XERROR ("Out of memory\n");
-      return false;
-   }
-
-   free (XVECT_INDEX (rr->fields, fieldnum));
-   XVECT_INDEX (rr->fields, fieldnum) = tmp;
-
-   return true;
-}
-
 bool rotrec_add_comment (rotrec_t *rr, const char *comment)
 {
    bool error = true;
    char *new_fields[4] = { NULL, NULL, NULL, NULL };
    xvector_t *newxv = NULL;
+
+   if (!rr || !comment)
+      return false;
 
    new_fields[0] = make_guid ();
    new_fields[1] = make_username ();
@@ -481,14 +459,95 @@ errorexit:
    return !error;
 }
 
-void rotrec_dump (rotrec_t *rr, FILE *outf)
+bool rotrec_close (rotrec_t *rr, const char *message)
+{
+   if (!rr || !message)
+      return false;
+
+   char *str_status = xstr_dup ("CLOSED");
+   char *str_user = make_username ();
+   char *str_time = make_time (0);
+   char *str_message = xstr_dup (message);
+
+   if (!str_status || !str_user || !str_time || !str_message) {
+      free (str_status);
+      free (str_user);
+      free (str_time);
+      free (str_message);
+      return false;
+   }
+
+   free (XVECT_INDEX (rr->fields, RF_STATUS));
+   free (XVECT_INDEX (rr->fields, RF_CLOSED_BY));
+   free (XVECT_INDEX (rr->fields, RF_CLOSED_ON));
+   free (XVECT_INDEX (rr->fields, RF_CLOSED_MSG));
+
+   XVECT_INDEX (rr->fields, RF_STATUS) = str_status;
+   XVECT_INDEX (rr->fields, RF_CLOSED_BY) = str_user;
+   XVECT_INDEX (rr->fields, RF_CLOSED_ON) = str_time;
+   XVECT_INDEX (rr->fields, RF_CLOSED_MSG) = str_message;
+
+   return true;
+}
+
+bool rotrec_dup (rotrec_t *rr, const char *id)
+{
+   if (!rr || !id)
+      return false;
+
+   char *str_message = xstr_cat ("Closed as DUPLICATE of #", id, NULL);
+   if (!str_message) {
+      XERROR ("Out of memory\n");
+      return false;
+   }
+
+   bool retval = rotrec_close (rr, str_message);
+
+   free (str_message);
+
+   return retval;
+}
+
+bool rotrec_reopen (rotrec_t *rr, const char *message)
+{
+   if (!rr || !message)
+      return false;
+
+   char *str_status = xstr_dup ("OPEN+");
+   char *str_user = make_username ();
+   char *str_time = make_time (0);
+   char *str_message = xstr_cat ("REOPEN due to: ", message, NULL);
+
+   if (!str_status || !str_user || !str_time || !str_message) {
+      XERROR ("Out of memory\n");
+      free (str_status);
+      free (str_user);
+      free (str_time);
+      free (str_message);
+      return false;
+   }
+
+   free (XVECT_INDEX (rr->fields, RF_STATUS));
+   free (XVECT_INDEX (rr->fields, RF_OPENED_BY));
+   free (XVECT_INDEX (rr->fields, RF_OPENED_ON));
+   free (XVECT_INDEX (rr->fields, RF_OPENED_MSG));
+
+   XVECT_INDEX (rr->fields, RF_STATUS) = str_status;
+   XVECT_INDEX (rr->fields, RF_OPENED_BY) = str_user;
+   XVECT_INDEX (rr->fields, RF_OPENED_ON) = str_time;
+   XVECT_INDEX (rr->fields, RF_OPENED_MSG) = str_message;
+
+   return true;
+}
+
+bool rotrec_dump (rotrec_t *rr, FILE *outf)
 {
    if (!outf)
       outf = stdout;
 
    if (!rr) {
       fprintf (outf, "Cannot print a NULL rotrec_t data bject\n");
-      return;
+      return false;
    }
 
    fprintf (outf, "------------------------------------------------\n");
@@ -527,5 +586,7 @@ void rotrec_dump (rotrec_t *rr, FILE *outf)
       fprintf (outf, "++ [comment: %s] by [%s] on [%s]\n%s\n",
                c_guid, c_user, c_time, c_comment);
    }
+
+   return true;
 }
 

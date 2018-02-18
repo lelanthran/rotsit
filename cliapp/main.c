@@ -48,77 +48,91 @@ errorexit:
    return ret;
 }
 
+static rotrec_t *safe_rotrec_by_id (rotsit_t *rs, const char **args)
+{
+   const char *id = args[1];
+   const char *f = args[0];
+   rotrec_t *rr = NULL;
+
+   if (!id) {
+      XERROR ("Expected an id for function [%s], no id specified\n", f);
+      return NULL;
+   }
+
+   rr = rotsit_find_by_id (rs, id);
+   if (!rr) {
+      XERROR ("No record found with id [%s] in function [%s]\n", id, f);
+   }
+
+   return rr;
+}
+
 static uint32_t cmd_show (rotsit_t *rs, char *msg, const char **args)
 {
    msg = msg;
 
-   uint32_t ret = 0x000000ff;
-   const char *id = args[1];
-   rotrec_t *rr = NULL;
-
-   if (!id) {
-      XERROR ("Expected an id for function [show], no id specified\n");
-      goto errorexit;
+   if (!rotrec_dump (safe_rotrec_by_id (rs, args), stdout)) {
+      return 0xff;
    }
 
-   rr = rotsit_find_by_id (rs, id);
-   if (!rr) {
-      XERROR ("No record found with id [%s]\n", id);
-      goto errorexit;
-   }
-
-   rotrec_dump (rr, stdout);
-
-   ret = 0x00;
-
-errorexit:
-   return ret;
+   return 0;
 }
 
 static uint32_t cmd_comment (rotsit_t *rs, char *msg, const char **args)
 {
-   uint32_t ret = 0x000001ff;
-   const char *id = args[1];
-   rotrec_t *rr = NULL;
 
-   if (!id) {
-      XERROR ("Expected an id for function [show], no id specified\n");
-      goto errorexit;
+   if (!rotrec_add_comment (safe_rotrec_by_id (rs, args), msg)) {
+      return 0x00ff;
    }
 
-   rr = rotsit_find_by_id (rs, id);
-   if (!rr) {
-      XERROR ("No record found with id [%s]\n", id);
-      goto errorexit;
-   }
-
-   if (!rotrec_add_comment (rr, msg)) {
-      XERROR ("Unable to add comment to record [%s]\n", id);
-      goto errorexit;
-   }
-
-   ret = 0x00000100;
-
-errorexit:
-   return ret;
+   return 0x0100;
 }
 
 static uint32_t cmd_dup (rotsit_t *rs, char *msg, const char **args)
 {
-   rs = rs; msg = msg; args = args;
-   return 0;
+   msg = msg;
+
+   if (!args[1] || !args[2]) {
+      XERROR ("Marking duplicate requires two IDs\n");
+      return 0x00ff;
+   }
+
+   if (!rotrec_dup (safe_rotrec_by_id (rs, args), args[2])) {
+      return 0x00ff;
+   }
+
+   return 0x0100;
 }
 
 static uint32_t cmd_reopen (rotsit_t *rs, char *msg, const char **args)
 {
-   rs = rs; msg = msg; args = args;
-   return 0;
+   if (!rotrec_reopen (safe_rotrec_by_id (rs, args), msg)) {
+      return 0x00ff;
+   }
+
+   return 0x0100;
+}
+
+static uint32_t cmd_close (rotsit_t *rs, char *msg, const char **args)
+{
+   if (!rotrec_close (safe_rotrec_by_id (rs, args), msg)) {
+      return 0x00ff;
+   }
+   return 0x0100;
 }
 
 static uint32_t cmd_export (rotsit_t *rs, char *msg, const char **args)
 {
-   rs = rs; msg = msg; args = args;
-   return 0;
+   msg = msg;
+   args = args;
+
+   uint32_t numrecs = rotsit_count_records (rs);
+
+   for (uint32_t i=0; i<numrecs; i++) {
+      rotrec_dump (rotsit_get_record (rs, i), stdout);
+   }
+
+   return 0x0000;
 }
 
 static uint32_t cmd_list (rotsit_t *rs, char *msg, const char **args)
@@ -130,7 +144,7 @@ static uint32_t cmd_list (rotsit_t *rs, char *msg, const char **args)
 static bool needs_message (const char *command)
 {
    static const char *cmds[] = {
-      "add", "comment", "dup", "close", "reopen",
+      "add", "comment", "close", "reopen",
    };
 
    for (size_t i=0; i<sizeof cmds/sizeof cmds[0]; i++) {
@@ -152,6 +166,7 @@ static cmdfptr_t find_cmd (const char *name)
       { "comment",   cmd_comment },
       { "dup",       cmd_dup     },
       { "reopen",    cmd_reopen  },
+      { "close",     cmd_close   },
       { "export",    cmd_export  },
       { "list",      cmd_list    },
    };
@@ -327,7 +342,7 @@ int main (int argc, char **argv)
    // ret[0] = return status (0=success)
    // ret[1] = object now dirty, command mutated the object
    // ret[2], ret[3] = RFU
-   uint32_t result = cmdfptr (issues, msg, &argv[cmdidx]);
+   uint32_t result = cmdfptr (issues, msg, (const char **)&argv[cmdidx]);
    if (result & 0xff) {
       XERROR ("Command [%s] returned error 0x%02x\n", argv[cmdidx],
                                                       result & 0xff);
