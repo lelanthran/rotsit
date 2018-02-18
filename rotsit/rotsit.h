@@ -25,8 +25,8 @@
 // From field RF_DUP_MSG onwards on all the remaining fields in a record
 // are comments added to the issue. Each comment has the following fields:
 #define CF_GUID         (0)
-#define CF_TIME         (1)
-#define CF_USER         (2)
+#define CF_USER         (1)
+#define CF_TIME         (2)
 #define CF_COMMENT      (3)
 
 typedef struct rotsit_t rotsit_t;
