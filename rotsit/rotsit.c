@@ -3,6 +3,7 @@
 #include <inttypes.h>
 #include <stdint.h>
 #include <stdbool.h>
+#include <time.h>
 
 #include "xvector/xvector.h"
 #include "xstring/xstring.h"
@@ -263,7 +264,60 @@ bool rotsit_add_record (rotsit_t *rs, rotrec_t *rr)
    return true;
 }
 
-rotrec_t *rotrec_new (void)
+static char *make_guid (void)
+{
+   uint64_t guid;
+
+   char *str_guid = malloc (2 + 16 + 1); // 0x + 16 digits + 0
+
+   if (!str_guid) {
+      XERROR ("Out of memory\n");
+      return NULL;
+   }
+
+   xcrypto_random ((uint8_t *)&guid, sizeof guid);
+
+   sprintf (str_guid, "0x%" PRIx64, guid);
+   return str_guid;
+}
+
+static char *make_username (void)
+{
+   char *str_user = NULL;
+   char *tmp_user = getenv (ENV_USERNAME);
+
+   str_user = xstr_dup (tmp_user ? tmp_user : "Unknown");
+
+   if (!str_user) {
+      XERROR ("Out of memory\n");
+      return NULL;
+   }
+
+   return str_user;
+}
+
+// TODO: Make this function thread-safe. Might need a mutex because
+// localtime_r is not available on MingW32.
+static char *make_time (uint32_t time_s)
+{
+   char *str_time = NULL;
+   if (!time_s) {
+      time_s = time (NULL);
+   }
+
+   str_time = xstr_dup (asctime (localtime ((time_t *)&time_s)));
+   if (!str_time) {
+      XERROR ("Out of memory\n");
+   }
+
+   char *tmp = strchr (str_time, '\n');
+   if (tmp)
+      *tmp = 0;
+
+   return str_time;
+}
+
+rotrec_t *rotrec_new (const char *msg)
 {
    bool error = true;
    static char *fields[] = {
@@ -293,26 +347,34 @@ rotrec_t *rotrec_new (void)
    // First field/0 must get a GUID. For now simply using a random number -
    // the extra search space by not limiting certain bits to dates
    // decreases the probability of a collision.
-   uint64_t guid;
-   xcrypto_random ((uint8_t *)&guid, sizeof guid);
-   char *str_guid = malloc (2 + 16 + 1); // 0x + 16 digits + 0
+   char *str_guid = make_guid ();
    if (!str_guid) {
-      XERROR ("Out of memory\n");
       goto errorexit;
    }
-   sprintf (str_guid, "0x%" PRIx64, guid);
-
    XVECT_INDEX (ret->fields, 0) = str_guid;
 
    // Third field/2 must be set to the current user
-   char *str_user = NULL;
-   char *tmp_user = getenv (ENV_USERNAME);
-   str_user = xstr_dup (tmp_user ? tmp_user : "Unknown");
+   char *str_user = make_username ();
    if (!str_user) {
-      XERROR ("Out of memory\n");
       goto errorexit;
    }
    XVECT_INDEX (ret->fields, 2) = str_user;
+
+   // Fourth field/3 must be set to the current time
+   char *str_time = make_time (0);
+   if (!str_time) {
+      goto errorexit;
+   }
+   XVECT_INDEX (ret->fields, 3) = str_time;
+
+   // Fifth field/4 must be set to the message
+   char *str_msg = xstr_dup (msg);
+   if (!str_msg) {
+      XERROR ("Out of memory\n");
+      goto errorexit;
+   }
+   XVECT_INDEX (ret->fields, 4) = str_msg;
+
 
    error = false;
 errorexit:
@@ -346,5 +408,55 @@ bool rotrec_set_field (rotrec_t *rr, uint8_t fieldnum, const char *src)
    XVECT_INDEX (rr->fields, fieldnum) = tmp;
 
    return true;
+}
+
+bool rotrec_add_comment (rotrec_t *rr, const char *comment)
+{
+   bool error = true;
+   char *new_fields[4] = { NULL, NULL, NULL, NULL };
+   xvector_t *newxv = NULL;
+
+   new_fields[0] = make_guid ();
+   new_fields[1] = make_username ();
+   new_fields[2] = make_time (0);
+   new_fields[3] = xstr_dup (comment);
+
+   for (size_t i=0; i<sizeof new_fields/sizeof new_fields[0]; i++) {
+      if (!new_fields[i]) {
+         XERROR ("Out of memory\n");
+         goto errorexit;
+      }
+   }
+
+   for (size_t i=0; i<sizeof new_fields/sizeof new_fields[0]; i++) {
+      xvector_t *tmp = xvector_ins_tail (newxv, new_fields[i]);
+      if (!tmp) {
+         XERROR ("Out of memory\n");
+         goto errorexit;
+      }
+      newxv = tmp;
+   }
+
+   xvector_t *tmp = xvector_join (rr->fields, newxv);
+   if (!tmp) {
+      XERROR ("Out of memory\n");
+      goto errorexit;
+   }
+
+   xvector_t *swap_tmp = rr->fields;
+   rr->fields = tmp;
+   xvector_free (swap_tmp);
+   xvector_free (newxv);
+
+   error = false;
+
+errorexit:
+   if (error) {
+      for (size_t i=0; i<sizeof new_fields/sizeof new_fields[0]; i++) {
+         free (new_fields [i]);
+      }
+   }
+
+   return !error;
 }
 

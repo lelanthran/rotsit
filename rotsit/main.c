@@ -80,25 +80,39 @@ static bool test_writer (void)
       goto errorexit;
    }
 
-   rr = rotrec_new ();
+   rr = rotrec_new ("New issue #1\nWe opened a test issue\n");
+   if (!rr) {
+      fprintf (stderr, "Out of memory\n");
+      goto errorexit;
+   }
+   if (!rotrec_add_comment (rr, "A comment\nadded to issue #1")) {
+      fprintf (stderr, "Failed to add comment\n");
+      goto errorexit;
+   }
+
+   rotsit_add_record (rs, rr);
+
+   rr = rotrec_new ("Issue #2\nAnother test issue\n");
    if (!rr) {
       fprintf (stderr, "Out of memory\n");
       goto errorexit;
    }
    rotsit_add_record (rs, rr);
+   if (!rotrec_add_comment (rr, "A comment\nadded to issue #2")) {
+      fprintf (stderr, "Failed to add comment\n");
+      goto errorexit;
+   }
 
-   rr = rotrec_new ();
+   rr = rotrec_new ("Issue #3\nAnother test issue\n");
    if (!rr) {
       fprintf (stderr, "Out of memory\n");
       goto errorexit;
    }
-   rotsit_add_record (rs, rr);
-
-   rr = rotrec_new ();
-   if (!rr) {
-      fprintf (stderr, "Out of memory\n");
+   if (!rotrec_add_comment (rr, "A comment\nadded to issue #3")) {
+      fprintf (stderr, "Failed to add comment\n");
       goto errorexit;
    }
+
    rotsit_add_record (rs, rr);
 
    outf = fopen ("rotsit.sitdb", "wb");

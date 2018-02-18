@@ -46,7 +46,7 @@ extern "C" {
 
    bool rotsit_add_record (rotsit_t *rs, rotrec_t *rr);
 
-   rotrec_t *rotrec_new (void);
+   rotrec_t *rotrec_new (const char *msg);
 
    bool rotrec_set_field (rotrec_t *rr, uint8_t fieldnum, const char *src);
    bool rotrec_add_comment (rotrec_t *rr, const char *comment);
