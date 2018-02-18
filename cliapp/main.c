@@ -10,9 +10,9 @@
 #include "xcfg/xcfg.h"
 
 #ifdef PLATFORM_WINDOWS
-#define UNAMEVAR        ("\%USERNAME\%")
+#define UNAMEVAR        "\%USERNAME\%"
 #else
-#define UNAMEVAR        ("$USER")
+#define UNAMEVAR        "$USER"
 #endif
 
 void print_help_msg (void)
@@ -20,7 +20,7 @@ void print_help_msg (void)
    static const char *msg[] = {
 "Revenge of the Simple Issue Tracker (0.0.1), c/line client",
 "Usage:",
-"rotsit [--option[=value]] command",
+"rotsit [--option[=value]] command [command-arguments]",
 "  Options:",
 "  --help:     Print this message, then exit with success",
 "  --msg:      Provide a message for commands that take a message",
@@ -41,15 +41,15 @@ void print_help_msg (void)
 "  list <listexpr>   Short-form list of all the entries matching listexpr",
 "",
 "<listexpr>",
-" List expression consists of various constraints as follows:",
-" --from-time=<time>      Only entries newer than <time>",
-" --to-time=<time>        Only entries older than <time>",
-" --status=<status,>      All entries matching cvs list in <status,>",
-" --from-id=<id>          Only entries with id newer than <id>",
-" --to-id=<id>            Only entries with id older than <id>",
-" --keyword=<string>      Include entries which match <string>",
-" --by-owner=<uname>      Only entries by <uname> (excludes comments)",
-" --by-user=<uname>       Only entries by <uname> (comments only)",
+"  List expression consists of various constraints as follows:",
+"  --from-time=<time>      Only entries newer than <time>",
+"  --to-time=<time>        Only entries older than <time>",
+"  --status=<status,>      All entries matching cvs list in <status,>",
+"  --from-id=<id>          Only entries with id newer than <id>",
+"  --to-id=<id>            Only entries with id older than <id>",
+"  --keyword=<string>      Include entries which match <string>",
+"  --by-owner=<uname>      Only entries by <uname> (excludes comments)",
+"  --by-user=<uname>       Only entries by <uname> (comments only)",
 "",
 "",
 "Copyright Lelanthran Manickum, 2018 (lelanthran@gmail.com)",
@@ -64,10 +64,36 @@ void print_help_msg (void)
 
 int main (int argc, char **argv)
 {
+   argc = argc;
    int ret = EXIT_FAILURE;
 
-   if (xcfg_from_array ("none", argv, "c/line")==(size_t)-1) {
+   // Set the options we want to read to default values
+   static const struct {
+      const char *name;
+      const char *def;
+   } options[] = {
+      { "help", NULL },
+      { "msg",  NULL },
+      { "file", NULL },
+      { "user", NULL },
+   };
+
+   for (size_t i=0; i<sizeof options/sizeof options[0]; i++) {
+      xcfg_configure ("none", options[i].name, "none", options[i].def);
+   }
+
+   if (xcfg_from_array ("none", (const char **)argv, "c/line")==(size_t)-1) {
       XERROR ("Error parsing command-line\n");
+      goto errorexit;
+   }
+
+   atexit (xcfg_shutdown);
+
+   // Check which options are set
+   const char *help_requested = xcfg_get ("none", "help");
+   if (help_requested) {
+      ret = EXIT_SUCCESS;
+      print_help_msg ();
       goto errorexit;
    }
 

@@ -4,6 +4,7 @@
 
 #include <stdio.h>
 #include <stdint.h>
+#include <stdbool.h>
 
 // These are the fields in each record
 #define RF_GUID         (0)
