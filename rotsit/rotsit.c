@@ -12,12 +12,6 @@
 
 #include "rotsit/rotsit.h"
 
-#ifdef PLATFORM_WINDOWS
-#define ENV_USERNAME       ("USERNAME")
-#else
-#define ENV_USERNAME       ("USER")
-#endif
-
 #define RECORD_DELIM       ("f\b\n")
 #define FIELD_DELIM        ("f\b")
 
@@ -30,7 +24,7 @@ struct rotrec_t {
    xvector_t *fields;   // char *
 };
 
-static void rotrec_del (rotrec_t *rec)
+void rotrec_del (rotrec_t *rec)
 {
    if (!rec)
       return;

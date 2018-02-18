@@ -6,6 +6,12 @@
 #include <stdint.h>
 #include <stdbool.h>
 
+#ifdef PLATFORM_WINDOWS
+#define ENV_USERNAME       ("USERNAME")
+#else
+#define ENV_USERNAME       ("USER")
+#endif
+
 // These are the fields in each record
 #define RF_GUID         (0)
 #define RF_ORDER        (1)
@@ -48,6 +54,7 @@ extern "C" {
    bool rotsit_add_record (rotsit_t *rs, rotrec_t *rr);
 
    rotrec_t *rotrec_new (const char *msg);
+   void rotrec_del (rotrec_t *rec);
 
    bool rotrec_set_field (rotrec_t *rr, uint8_t fieldnum, const char *src);
    bool rotrec_add_comment (rotrec_t *rr, const char *comment);
