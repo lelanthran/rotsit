@@ -21,3 +21,186 @@ Records are delimited by the character sequence "f\b\n". Fields are
 delimited by the character sequence "f\b".
 
 
+
+Expression parsing
+------------------
+
+When listing records the caller should be able to specify a natural
+language (ish) expression:
+
+(field1 > value1 and field2 < value2)     # expr1, expr2
+   or (field3 = value3)                   # expr3
+   or (field4 != value4)                  # expr4
+
+operator:   > | < | == | != | OR | AND
+operand:    string
+expr:       operand operator operand
+node:       expr | (expr)
+
+Each node in the tree will return either a true or a false for a given
+field, this bool is propogated up the tree. The above example becomes are
+tree that looks like this:
+
+  (OR) -+---------> (AND) -+---1----> (>) -+------> field1
+        |                  |               |
+        |                  |               +------> value1
+        |                  |
+        |                  |
+        |                  +---2----> (<) -+------> field2
+        |                                  |
+        |                                  +------> value2
+        |
+        +----3-----> (=) -+------> field3
+        |                 |
+        |                 +------> value3
+        |
+        |
+        |
+        +----4----> (!=) -+------> field4
+                          |
+                          +------> value4
+
+This isn't as easy as it looks. For example, changing the example
+expression to (note emphasis):
+
+(field1 > value1 and field2 < value2)     # expr1, expr2
+   AND (field3 = value3)                  # expr3
+   or (field4 != value4)                  # expr4
+
+Breaks the tree building process. The problem is that operators OR and AND
+do not have only two children. We can fix this by breaking out the OR and
+AND conjunctions so that they are not operators, in which case every
+single OR and every single AND must be enclosed by brackets.
+
+operator:   > | < | == | !=
+operand:    string
+conj:       and | or
+expr:       operand operator operand
+node:       expr | (expr conj expr)
+
+When an open bracket is encountered a new CONJUNCTION node must be created
+that will only contain two children. At the end of any expression we must
+return a tree to parent who can examine the next token and decide how to
+join the next tree to the current token.
+
+We can recursively parse this into a tree easily:
+
+struct node_t {
+   uint8_t  op;         # Either >, <, ==, !=, AND, OR or NONE
+   node_t  *lhs;
+   node_t  *rhs;
+};
+
+eval ("field1") => { NONE, "field1", NULL };
+eval ("x", "OP", "y") => { OP, "x", "y" };
+
+We should recursively descend the tree to parse the input tokens. Pattern
+matching is a bit clunky.
+
+Maybe push each token onto a stack. When end-of-expr is detected we
+pop the last infix expression on the stack, evaluate it and push the
+result back?
+
+(
+field1
+>
+value1
+AND      <= Pop rhs, op, lhs then push { >, field1, value1 }, push AND
+--------------------
+
+
+   (
+   t/f
+   AND
+field2
+<
+value2
+)        <= Pop rhs, op, lhs then push { < field2, value2 }, push ')'
+--------------------
+
+
+   (
+   t/f
+   AND
+   t/f
+   )     <= Eval stack as [r] OP [r] until '(' reached
+--------------------
+
+
+   t/f
+AND      <= Pop rhs, op, lhs, fail and continue, push AND
+--------------------
+
+
+   t/f
+   AND
+field3
+=
+value3
+OR       <= Pop rhs, op, lhs then push { =, field3, value3 }, push OR
+--------------------
+
+
+   t/f
+   AND
+   t/f
+   OR    <= Eval stack
+--------------------
+
+   t/f
+   OR
+field4
+!=
+value4
+EOF      <= Eval stack
+--------------------
+
+
+t/f      <= result
+
+
+stack_item_t must hold the following types:
+conjunction:   AND, OR
+operator:      >, <, ==, !=
+operand:       string/reference
+result:        true/false
+delim:         '(' and ')'
+
+void eval_last (stack_t *stack) {
+   rhs = pop (stack);
+   op = pop (stack);
+   lhs = pop (stack);
+   if (!lhs || !op || !rhs) {
+      push_null (stack, lhs);    // Does nothing if lhs is NULL
+      push_null (stack, op);     // Does nothing if op is NULL
+      push_null (stack, rhs);    // Does nothing if rhs is NULL
+   } else {
+      push (stack, runop (op, lhs, rhs));
+   }
+}
+
+void eval_braces (stack_t *stack) {
+   next = peek (stack);
+   while (next && next!='(') {
+      eval_last (stack);
+      next = peek (stack);
+   }
+}
+
+void eval_stack (stack_t *stack) {
+
+   while (count (stack) > 1) {
+      rhs = pop (stack);
+      op = pop (stack);
+      lhs = pop (stack);
+      if (!op || !lhs) {
+         error ("Expression truncated\n");
+      } else {
+         push (stack, runop (op, lhs, rhs));
+      }
+   }
+
+   // Single item on stack is the result
+}
+
+
