@@ -180,7 +180,7 @@ int main (void)
       free (result);
       result = ires == tests[i].result ? "passed" : "failed";
 
-      printf ("[%s] = [%i] (%s) [%i]\n", tests[i].expr, ires, result);
+      printf ("[%s] = [%i] (%s)\n", tests[i].expr, ires, result);
       for (size_t j=0; tokens[j]; j++) {
          free (tokens[j]);
       }
