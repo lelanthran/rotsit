@@ -207,7 +207,7 @@ void eval_stack (stack_t *stack) {
 Parsing general arithmetic expressions
 --------------------------------------
 Using two stacks we can evaluate any arithmetic expression (boolean
-filters are a specialised instance of general airthmetic) while
+filters are a specialised instance of general arithmetic) while
 implementing precedence.
 
 One stack holds the operands, the other holds the operators. Each time we
@@ -252,28 +252,33 @@ TF,TF,TF                AND,OR
 TF,TF                   AND
 TF
 
+
+// Caller must supply run_op (void *, void *, void *) and
+// token_type (void *)
+//
 bool apply (st1, st2) {
    rhs = pop (st1);
    lhs = pop (st1);
    op = pop (st2);
    if (!lhs || !rhs || !op) {
-      // Error
+      return false;
    }
-   return push (st1, run_op (op, lhs, rhs));
+   return push (st1, run_op (op, lhs, rhs)) ? true : false;
 }
 
 // We (maybe) use close_op to enforce closing brace to be the same as the
 // opening one. There is no need for this, however it does allow the
 // writer to attempt to enforce layers of braces.
-eval (tokens[]) {
+void *eval (void *tokens[]) {
    for (i=0; tokens[i]; i++) {
 
-      switch (type (tokens[i])) {
+      switch (token_type (tokens[i])) {
 
          // High precedence operators = immediate execution
          case MUL_DIV:  push (st1, tokens[i]);
                         push (st2, tokens[i]);
-                        apply (st1, st2);
+                        if (!apply (st1, st2))
+                           return NULL;
                         break;
 
          // Can execute this at the end
@@ -289,6 +294,14 @@ eval (tokens[]) {
          case CLOSE:    apply (st1, st2);
                         break;
    }
+   while (length (st1)>=2 && length (st2))
+      if (!apply (st1, st2))
+         return NULL;
+
+   if (length(st1)!=1 || length(st2)!=0)
+      return NULL;
+
+   return pop (st1);
 }
 
 
