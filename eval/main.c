@@ -22,14 +22,16 @@ void *exec_op (const void *p_op, void const *p_lhs, void const *p_rhs)
    sscanf (s_rhs, "%i", &rhs);
 
    switch (*s_op) {
-      case '+':   result = lhs + rhs; break;
-      case '-':   result = lhs - rhs; break;
-      case '*':   result = lhs * rhs; break;
-      case '/':   result = lhs / rhs; break;
-      case '<':   result = lhs < rhs; break;
-      case '>':   result = lhs > rhs; break;
+      case '+':   result = lhs + rhs;  break;
+      case '-':   result = lhs - rhs;  break;
+      case '*':   result = lhs * rhs;  break;
+      case '/':   result = lhs / rhs;  break;
+      case '<':   result = lhs < rhs;  break;
+      case '>':   result = lhs > rhs;  break;
       case '=':   result = lhs == rhs; break;
       case '!':   result = lhs != rhs; break;
+      case '&':   result = lhs && rhs; break;
+      case '|':   result = lhs || rhs; break;
    }
 
    char tmp[40];
@@ -48,7 +50,9 @@ eval_type_t check_type (void const *token)
       case '+':
       case '-':
       case '<':
-      case '>':   return eval_LOW_OPS;
+      case '>':
+      case '&':
+      case '|':   return eval_LOW_OPS;
       case '(':   return eval_OPEN;
       case ')':   return eval_CLOSE;
       default:    return eval_OPERAND;
@@ -71,6 +75,10 @@ static char **make_tokens (const char *input)
       char *new_token = NULL;
       char *end;
       char tmp_c;
+      bool dbl = false;
+
+      if (start[1]=='=')
+         dbl = true;
 
       switch (*start) {
          case '(':   new_token = xstr_dup ("("); break;
@@ -79,26 +87,19 @@ static char **make_tokens (const char *input)
          case '-':   new_token = xstr_dup ("-"); break;
          case '/':   new_token = xstr_dup ("/"); break;
          case '*':   new_token = xstr_dup ("*"); break;
-         case '<':   new_token = xstr_dup ("<"); break;
-         case '>':   new_token = xstr_dup (">"); break;
+         case '&':   new_token = xstr_dup ("&"); break;
+         case '|':   new_token = xstr_dup ("|"); break;
 
-         case '=':   start++;
-                     if (*start=='=')
-                        new_token = xstr_dup ("==");
-                     else
-                        printf ("Warning: error near: %s\n", start);
-                     break;
-         case '!':   start++;
-                     if (*start=='=')
-                        new_token = xstr_dup ("!=");
-                     else
-                        printf ("Warning: error near: %s\n", start);
-                     break;
+         case '<':   new_token = xstr_dup (dbl ? "<=" : "<");  break;
+         case '>':   new_token = xstr_dup (dbl ? ">=" : ">");  break;
+         case '=':   new_token = xstr_dup (dbl ? "==" : NULL); break;
+         case '!':   new_token = xstr_dup (dbl ? "!=" : NULL); break;
 
          case ' ':
          case '\n':
          case '\r':
-         case '\t':  break;
+         case '\t':  dbl = false;
+                     break;
 
          default: end = start;
                   while (isalnum (*end))
@@ -120,6 +121,9 @@ static char **make_tokens (const char *input)
          }
          xv = tmp;
       }
+
+      if (dbl)
+         start++;
 
       if (*start)
          start++;
@@ -153,8 +157,16 @@ int main (void)
       { 11, "5 + 3 * 2" },
       { 16, "(5 + 3) * 2" },
       { 14, "(5 + (3 - 1)) * 2" },
-      { 0,  "((5 + (3 - 1)) * 2) == 14" },
+      { 0,  "((5 + (3 - 1)) * 2) < 14" },
       { 1,  "((5 + (3 - 1)) * 2) > 10" },
+      { 1,  "6 | 3 - 3" },
+      { 1,  "7 | 0" },
+      { 1,  "0 | 3" },
+      { 0,  "0 | 0" },
+      { 1,  "6 & 3" },
+      { 0,  "7 & 0" },
+      { 0,  "0 & 3" },
+      { 0,  "0 & 0" },
    };
 
    eval_t *ev = eval_new ((void *(*) (const void *))xstr_dup,
