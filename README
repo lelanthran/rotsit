@@ -204,3 +204,109 @@ void eval_stack (stack_t *stack) {
 }
 
 
+Parsing general arithmetic expressions
+--------------------------------------
+Using two stacks we can evaluate any arithmetic expression (boolean
+filters are a specialised instance of general airthmetic) while
+implementing precedence.
+
+One stack holds the operands, the other holds the operators. Each time we
+encounter a CLOSE token (either ')'  or ']' or similar) pop two operands
+and the last operator and evaluate that single expression. We then push
+the result back onto the operand stack and continue. Each time we
+encounter a "*" or "/" operator we pop one operand and one operator and
+apply the expression and push the result onto the operand stack.
+
+Once we get to the end of the input we repeatedly pop 2 operands and 1
+operator, applying the operator to the operand and pushing the result into
+the operand stack.
+
+(field1 > value1 and field2 < value2)     # expr1, expr2
+   or (field3 == value3)                  # expr3
+   or field4 != value4                    # expr4
+
+st1                     st2               token[i]
+                                          (
+                                          field1
+field1                                    >
+field1                  >                 value1
+field1,value1           >                 )
+TF                                        and
+TF                      AND               field2
+TF,field2               AND               <
+TF,field2               AND,<             value2
+TF,field2,value2        AND,<             )
+TF,TF                   AND               or
+TF,TF                   AND,OR            (
+TF,TF                   AND,OR            field3
+TF,TF,field3            AND,OR            ==
+TF,TF,field3            AND,OR,==         value3
+TF,TF,field3,value3     AND,OR,==         )
+TF,TF,TF                AND,OR            or
+TF,TF,TF                AND,OR,OR         field4
+TF,TF,TF,field4         AND,OR,OR         !=
+TF,TF,TF,field4         AND,OR,OR,!=      value4
+TF,TF,TF,field4,value4  AND,OR,OR,!=      EOF
+TF,TF,TF,TF             AND,OR,OR
+TF,TF,TF                AND,OR
+TF,TF                   AND
+TF
+
+bool apply (st1, st2) {
+   rhs = pop (st1);
+   lhs = pop (st1);
+   op = pop (st2);
+   if (!lhs || !rhs || !op) {
+      // Error
+   }
+   return push (st1, run_op (op, lhs, rhs));
+}
+
+// We (maybe) use close_op to enforce closing brace to be the same as the
+// opening one. There is no need for this, however it does allow the
+// writer to attempt to enforce layers of braces.
+eval (tokens[]) {
+   for (i=0; tokens[i]; i++) {
+
+      switch (type (tokens[i])) {
+
+         // High precedence operators = immediate execution
+         case MUL_DIV:  push (st1, tokens[i]);
+                        push (st2, tokens[i]);
+                        apply (st1, st2);
+                        break;
+
+         // Can execute this at the end
+         case LOW_OPS:  push (st2, tokens[i]);
+                        break;
+
+         case OPERAND:  push (st1, tokens[i]);
+                        break;
+
+         case OPEN:     close_op = tokens[i];
+                        break;
+
+         case CLOSE:    apply (st1, st2);
+                        break;
+   }
+}
+
+
+Parsing into a tree
+-------------------
+We can generalise parsing for any arithmetic expression (booleans is a
+specialised instance of arithmetic parsing) including precedence as
+using a LL(1) grammar like this:
+
+   op_add:  + | -
+   op_mul:  * | /
+   term:    string | number
+   hexpr:   term op_mul term
+   lexpr:   hexpr op_mul hexpr
+   open:    ( | [ | {
+   close:   ) | ] | }
+   expr:    hexpr | lexpr | ( expr )
+
+This is actually more complex and error-prone than the stack solution.
+
+
