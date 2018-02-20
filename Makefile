@@ -9,6 +9,7 @@ LIBNAME=rotsit
 SUBPROJS=\
 	rotsit\
 	pdate\
+	eval\
 	cliapp
 
 # Your extra include directories, for headers that are not in the path.
