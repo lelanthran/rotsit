@@ -13,6 +13,7 @@ MAKESHELL=cmd.exe /c
 
 CFLAGS+=-D__USE_MINGW_ANSI_STDIO=1
 LDEXTRAFLAGS=\
+	$(MYLIBS)\
 	-lws2_32\
 	-L$(MINGW_LOCATION)/opt/lib -lregex
 
