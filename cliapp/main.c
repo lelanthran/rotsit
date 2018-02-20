@@ -300,7 +300,13 @@ int main (int argc, char **argv)
 
    const char *username = xcfg_get ("none", "user");
    if (username) {
-      setenv (ENV_USERNAME, username, 1);
+      char *tmp = xstr_cat (ENV_USERNAME, "=", username, NULL);
+      if (!tmp) {
+         XERROR ("Out of memory\n");
+         goto errorexit;
+      }
+      putenv (tmp);
+      free (tmp);
    }
 
    const char *dbfile = xcfg_get ("none", "dbfile");
