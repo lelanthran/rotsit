@@ -51,14 +51,7 @@ extern "C" {
 
    uint32_t rotsit_count_records (rotsit_t *rs);
    rotrec_t *rotsit_get_record (rotsit_t *rs, uint32_t recnum);
-   rotrec_t **rotsit_filter (rotsit_t *rs, const char *from_time,
-                                           const char *to_time,
-                                           const char *status,
-                                           const char *from_order,
-                                           const char *to_order,
-                                           const char *by_owner,
-                                           const char *by_user,
-                                           const char *keyword);
+   rotrec_t **rotsit_filter (rotsit_t *rs, const char *expr);
 
    rotrec_t *rotsit_find_by_id (rotsit_t *rs, const char *id);
 

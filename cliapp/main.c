@@ -137,22 +137,18 @@ static uint32_t cmd_export (rotsit_t *rs, char *msg, const char **args)
 
 static uint32_t cmd_list (rotsit_t *rs, char *msg, const char **args)
 {
-   const char *from_order = xcfg_get ("none", "from-order");
-   const char *to_order = xcfg_get ("none", "to-order");
-   const char *from_time = xcfg_get ("none", "from-time");
-   const char *to_time = xcfg_get ("none", "to-time");
-   const char *status = xcfg_get ("none", "status");
-   const char *owner = xcfg_get ("none", "by-owner");
-   const char *user = xcfg_get ("none", "by-user");
-   const char *keyword = xcfg_get ("none", "keyword");
-
    msg = msg;
-   args = args;
 
-   rotrec_t **results = rotsit_filter (rs, from_time, to_time,
-                                           status,
-                                           from_order, to_order,
-                                           owner, user, keyword);
+   printf (" *****************************************************\n");
+   printf (" ARGS: [%s]\n", args[1]);
+   printf (" *****************************************************\n");
+
+   if (!args[1]) {
+      XERROR ("No search expression specified\n");
+      return 0x00ff;
+   }
+
+   rotrec_t **results = rotsit_filter (rs, args[1]);
    if (!results) {
       XERROR ("Internal error in filer function\n");
       return 0x00ff;
@@ -236,14 +232,42 @@ void print_help_msg (void)
 "  listed below along with a description of each field.",
 "",
 "  Each expression consists of exactly two terms and a comparison operator",
-"  optionalled enclosed by brackets. For example both of the following are",
+"  optionally enclosed by brackets. For example both of the following are",
 "  equivalent expressions:",
 "",
 "     opened-by == jsmith@example.com",
 "     (opened-by == jsmith@example.com)",
 "",
 "  The brackets are used to enforce precedence. Where brackets are missing",
-"  a default precedence rule applies: ", // TODO: Stopped here last
+"  the default precedence is to apply the operators from right to left,",
+"  working back from the end of the expression. When there is more than",
+"  two operands and more than one operator brackets are not optional and",
+"  must be used to group the three or more operands into pairs. For example",
+"",
+"opened-by == jsmith@example.com & closed-by jsmith@example.com [Wrong]",
+"(opened-by == jsmith@example.com) & closed-by jsmith@example.com [Right]",
+"",
+"",
+"  OPERATOR LIST",
+"     <        Less than",
+"     >        Greater than",
+"     <=       Less than or equal to",
+"     >=       Greater than or equal to",
+"     ==       Equal to (matches keywords or dates exactly",
+"     !=       Not equal to",
+"     |        Logical OR",
+"     &        Logical AND",
+"",
+"",
+"  FIELD LIST",
+"     opened-by   User who opened the issue",
+"     opened-on   Date/time when issue was opened",
+"     closed-by   User who closed the issue",
+"     closed-on   Date/time when issue was closed",
+"     status      Match the status (OPEN/CLOSED)",
+"     message     Case-insensitive match of keyword in message",
+"     comment     Case-insensitive match of keyword in comment",
+"     all         Case-insensitive match of keyword anywhere in issue",
 "",
 "",
 "Copyright Lelanthran Manickum, 2018 (lelanthran@gmail.com)",

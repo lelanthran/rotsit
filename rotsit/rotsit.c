@@ -272,108 +272,12 @@ static bool istrcmp (const char *lhs, const char *rhs)
    return *lhs == *rhs;
 }
 
-rotrec_t **rotsit_filter (rotsit_t *rs, const char *from_time,
-                                        const char *to_time,
-                                        const char *status,
-                                        const char *from_order,
-                                        const char *to_order,
-                                        const char *by_owner,
-                                        const char *by_user,
-                                        const char *keyword)
+rotrec_t **rotsit_filter (rotsit_t *rs, const char *expr)
 {
    bool error = true;
    xvector_t *results = NULL;
    rotrec_t **ret = NULL;
 
-   uint32_t _from_time = 0, _to_time = (uint32_t)-1;
-   uint32_t _from_order = 0, _to_order = (uint32_t)-1;
-
-   char *_status = xstr_dup (status);
-   char *_owner = xstr_dup (by_owner);
-   char *_user = xstr_dup (by_user);
-   char *_keyword = xstr_dup (keyword);
-
-   if (  (status   && !_status)  ||
-         (by_owner && !_owner)   ||
-         (by_user  && !_user)    ||
-         (keyword  && !_keyword)   ) {
-      XERROR ("Out of memory\n");
-      goto errorexit;
-   }
-
-   if (from_time && pdate_parse (from_time, (time_t *)&_from_time, true)!=0) {
-      XERROR ("Unable to parse date [%s], ignoring it\n", from_time);
-   }
-
-   if (to_time && pdate_parse (to_time, (time_t *)&_to_time, false)!=0) {
-      XERROR ("Unable to parse date [%s], ignoring it\n", to_time);
-   }
-
-   if (from_order && sscanf (from_order, "%x", &_from_order)!=1) {
-      XERROR ("Unable to parse order ID [%s], ignoring it\n", from_order);
-   }
-
-   if (to_order && sscanf (to_order, "%x", &_to_order)!=1) {
-      XERROR ("Unable to parse order ID [%s], ignoring it\n", to_order);
-   }
-
-   for (size_t i=0; i<XVECT_LENGTH (rs->records); i++) {
-#define KEEP_AND_CONTINUE         if (1) {\
-   xvector_t *tmp = xvector_ins_tail (results, rr);\
-   if (!tmp) {\
-      XERROR ("Out of memory\n");\
-      goto errorexit;\
-   }\
-   results = tmp;\
-   continue;\
-}
-
-#define GET_INDEX(idx)     (XVECT_INDEX (rr->fields, idx))
-
-      rotrec_t *rr = XVECT_INDEX (rs->records, i);
-      uint32_t o_time = 1,
-               a_time = 1,
-               c_time = 1;
-
-      uint32_t forder;
-
-      pdate_parse (GET_INDEX (RF_OPENED_ON), (time_t *)&o_time, true);
-      pdate_parse (GET_INDEX (RF_ASSIGNED_ON), (time_t *)&a_time, true);
-      pdate_parse (GET_INDEX (RF_CLOSED_ON), (time_t *)&c_time, true);
-
-      sscanf (GET_INDEX (RF_ORDER), "%x", &forder);
-
-
-      if (  (_from_time < o_time || o_time < _to_time) ||
-            (_from_time < a_time || a_time < _to_time) ||
-            (_from_time < c_time || c_time < _to_time) ||
-            (_from_order < forder || forder < _to_order) ) {
-         XERROR ("Number matches\n");
-         KEEP_AND_CONTINUE;
-      }
-
-      if (  (istrcmp (_status, XVECT_INDEX (rr->fields, RF_STATUS)))   ||
-            (istrcmp (_owner, XVECT_INDEX (rr->fields, RF_OPENED_BY))) ||
-            (istrcmp (_user, XVECT_INDEX (rr->fields, RF_OPENED_BY)))  ||
-            (istrcmp (_owner, XVECT_INDEX (rr->fields, RF_CLOSED_BY))) ||
-            (istrcmp (_user, XVECT_INDEX (rr->fields, RF_CLOSED_BY)))  ||
-            (istrcmp (_owner, XVECT_INDEX (rr->fields, RF_DUP_BY)))    ||
-            (istrcmp (_user, XVECT_INDEX (rr->fields, RF_DUP_BY)))       ) {
-         XERROR ("String matches\n");
-         KEEP_AND_CONTINUE;
-      }
-   }
-
-   error = false;
-
-errorexit:
-   free (_status);
-   free (_owner);
-   free (_user);
-   free (_keyword);
-   if (!error) {
-      ret = xvector_native (results);
-   }
    xvector_free (results);
    return ret;
 }
