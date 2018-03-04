@@ -244,8 +244,9 @@ static bool fsubst (char **tokens, rotrec_t *rr)
       { RF_ASSIGNED_ON,    "assigned_on" },
       { RF_CLOSED_BY,      "closed_by"   },
       { RF_CLOSED_ON,      "closed_on"   },
-      { RF_CLOSED_MSG,     "closed_by"   },
+      { RF_CLOSED_MSG,     "closed_msg"  },
       { RF_DUP_BY,         "dup_by"      },
+      // TODO: Must also match up comments
       // RF_DUP_GUID
       // RF_DUP_MSG
    };
