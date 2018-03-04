@@ -186,7 +186,6 @@ enum pdate_errcode_t pdate_parse (const char *string, time_t *ret,
       if ((sscanf (tokens[i], "%i", &tmpval))!=1 &&
           (is_DoW (tokens[i])!=true)) {
          errcode = pdate_unknown_field;
-         printf (" ********************* Error spot #1 [%s]\n", tokens[i]);
          goto errorexit;
       }
       if (day==-1) {

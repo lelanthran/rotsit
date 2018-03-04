@@ -13,9 +13,190 @@
 
 #include "rotsit/rotsit.h"
 #include "pdate/pdate.h"
+#include "eval/eval.h"
+#include "pdate/pdate.h"
 
 #define RECORD_DELIM       ("f\b\n")
 #define FIELD_DELIM        ("f\b")
+
+static void *exec_op (const void *p_op, void const *p_lhs, void const *p_rhs)
+{
+   const char *s_op = p_op;
+   const char *s_lhs = p_lhs;
+   const char *s_rhs = p_rhs;
+
+   int result = -1;
+   int64_t lhs = 0;
+   int64_t rhs = 0;
+   char tmp[40];
+
+   bool parsed = false;
+
+   enum pdate_errcode_t d_err_lhs, d_err_rhs;
+   time_t tv_lhs, tv_rhs;
+
+   // First try to parse this as a date. If it's a valid date we use it as
+   // a large integer
+   d_err_lhs = pdate_parse (s_lhs, &tv_lhs, true);
+   d_err_rhs = pdate_parse (s_rhs, &tv_rhs, true);
+
+   XERROR ("lhs: [%s] rhs: [%s]\n", s_lhs, s_rhs);
+
+   if (d_err_lhs==pdate_valid && d_err_rhs==pdate_valid) {
+      lhs = (int32_t)tv_lhs;
+      rhs = (int32_t)tv_rhs;
+      XERROR ("Read dates [0x%" PRIx64 "], [0x%" PRIx64 "] \n",
+               lhs, rhs);
+      parsed = true;
+   }
+
+   // Next, try to read lhs/rhs as a number. If both are numbers
+   // then we assume that the integer operators apply
+   if (!parsed) {
+      int i_lhs = sscanf (s_lhs, "%" PRIx64, &lhs);
+      int i_rhs = sscanf (s_rhs, "%" PRIx64, &rhs);
+
+      if (i_lhs==1 && i_rhs==1) {
+         parsed = true;
+      }
+   }
+
+   // If none of the above parsings worked, then we treat the operands as
+   // strings. Note that not all operators are defined for strings, only
+   // the equality and non-equality.
+   if (!parsed) {
+      if (*s_op == '!') {
+         sprintf (tmp, "%i", strcmp (s_lhs, s_rhs)!=0);
+      }
+      if (*s_op == '=') {
+         sprintf (tmp, "%i", strcmp (s_lhs, s_rhs)==0);
+      }
+      sprintf (tmp, "%i", result);
+      return xstr_dup (tmp);
+   }
+
+   switch (*s_op) {
+      case '+':   result = lhs + rhs;  break;
+      case '-':   result = lhs - rhs;  break;
+      case '*':   result = lhs * rhs;  break;
+      case '/':   result = lhs / rhs;  break;
+      case '<':   result = lhs < rhs;  break;
+      case '>':   result = lhs > rhs;  break;
+      case '=':   result = lhs == rhs; break;
+      case '!':   result = lhs != rhs; break;
+      case '&':   result = lhs && rhs; break;
+      case '|':   result = lhs || rhs; break;
+   }
+
+   sprintf (tmp, "%i", result);
+   return xstr_dup (tmp);
+}
+
+static eval_type_t check_type (void const *token)
+{
+   const char *s_token = token;
+   switch (*s_token) {
+      case '*':
+      case '/':   return eval_HIGH_OPS;
+      case '=':
+      case '!':
+      case '+':
+      case '-':
+      case '<':
+      case '>':
+      case '&':
+      case '|':   return eval_LOW_OPS;
+      case '(':   return eval_OPEN;
+      case ')':   return eval_CLOSE;
+      default:    return eval_OPERAND;
+   }
+   return eval_UNKNOWN;
+}
+
+static char **make_tokens (const char *input)
+{
+   bool error = true;
+   char **ret = NULL;
+   xvector_t *xv = NULL;
+   char *local = xstr_dup (input);
+   if (!local) {
+      goto errorexit;
+   }
+
+   char *start = local;
+   while (*start) {
+      char *new_token = NULL;
+      char *end;
+      char tmp_c;
+      bool dbl = false;
+      static const char *ops = "()+-/*&|<>=!";
+
+      if (start[1]=='=')
+         dbl = true;
+
+      switch (*start) {
+         case '(':   new_token = xstr_dup ("("); break;
+         case ')':   new_token = xstr_dup (")"); break;
+         case '+':   new_token = xstr_dup ("+"); break;
+         case '-':   new_token = xstr_dup ("-"); break;
+         case '/':   new_token = xstr_dup ("/"); break;
+         case '*':   new_token = xstr_dup ("*"); break;
+         case '&':   new_token = xstr_dup ("&"); break;
+         case '|':   new_token = xstr_dup ("|"); break;
+
+         case '<':   new_token = xstr_dup (dbl ? "<=" : "<");  break;
+         case '>':   new_token = xstr_dup (dbl ? ">=" : ">");  break;
+         case '=':   new_token = xstr_dup (dbl ? "==" : NULL); break;
+         case '!':   new_token = xstr_dup (dbl ? "!=" : NULL); break;
+
+         case ' ':
+         case '\n':
+         case '\r':
+         case '\t':  dbl = false;
+                     break;
+
+         default: end = start;
+                  while (strchr (ops, *end)==NULL)
+                     end++;
+                  tmp_c = *end;
+                  *end = 0;
+                  new_token = xstr_dup (start);
+                  *end = tmp_c;
+                  end--;
+                  start = end;
+                  break;
+      }
+
+      if (new_token) {
+         xvector_t *tmp = xvector_ins_tail (xv, new_token);
+         if (!tmp) {
+            free (new_token);
+            goto errorexit;
+         }
+         xv = tmp;
+      }
+
+      if (dbl)
+         start++;
+
+      if (*start)
+         start++;
+   }
+
+   ret = xvector_native (xv);
+   error = false;
+
+errorexit:
+
+   free (local);
+   xvector_free (xv);
+
+   if (error) {
+      xstr_delarray (ret);
+      ret = NULL;
+   }
+   return ret;
+}
 
 struct rotsit_t {
    char *buffer;
@@ -25,6 +206,56 @@ struct rotsit_t {
 struct rotrec_t {
    xvector_t *fields;   // char *
 };
+
+static bool fsubst (char **tokens, rotrec_t *rr)
+{
+   bool error = true;
+
+   static const struct {
+      uint32_t       fnum;
+      const char    *name;
+   } fields[] = {
+      { RF_GUID,           "guid"        },
+      { RF_ORDER,          "order"       },
+      { RF_OPENED_BY,      "opened_by"   },
+      { RF_OPENED_ON,      "opened_on"   },
+      { RF_OPENED_MSG,     "message"     },
+      { RF_STATUS,         "status"      },
+      { RF_ASSIGNED_BY,    "assigned_by" },
+      { RF_ASSIGNED_TO,    "assigned_to" },
+      { RF_ASSIGNED_ON,    "assigned_on" },
+      { RF_CLOSED_BY,      "closed_by"   },
+      { RF_CLOSED_ON,      "closed_on"   },
+      { RF_CLOSED_MSG,     "closed_by"   },
+      { RF_DUP_BY,         "dup_by"      },
+      // RF_DUP_GUID
+      // RF_DUP_MSG
+   };
+
+   for (size_t i=0; tokens && tokens[i]; i++) {
+
+      xstr_trim (tokens[i]);
+
+      for (size_t j=0; j<sizeof fields/sizeof fields[0]; j++) {
+
+         if (strcmp (fields[j].name, tokens[i])==0) {
+            char *field = XVECT_INDEX (rr->fields, j);
+
+            free (tokens[i]);
+            tokens[i] = xstr_dup (field);
+            if (!tokens[i] && field) {
+               XERROR ("Out of memory\n");
+               goto errorexit;
+            }
+            break;
+         }
+      }
+   }
+
+   error = false;
+errorexit:
+   return !error;
+}
 
 void rotrec_del (rotrec_t *rec)
 {
@@ -277,7 +508,97 @@ rotrec_t **rotsit_filter (rotsit_t *rs, const char *expr)
    bool error = true;
    xvector_t *results = NULL;
    rotrec_t **ret = NULL;
+   char **ltokens = NULL;
 
+   eval_t *ev = eval_new ( (void *(*) (const void *))xstr_dup,
+                           (void (*) (void *))free,
+                           exec_op, check_type);
+
+   char **tokens = make_tokens (expr);
+   uint32_t num_records = 0;
+
+   if (!rs) {
+      XERROR ("Passed a NULL rotsit database.\n");
+      goto errorexit;
+   }
+
+   if (!expr || !*expr) {
+      XERROR ("Expression is empty.\n");
+      goto errorexit;
+   }
+
+   num_records = rotsit_count_records (rs);
+   if (!num_records) {
+      XERROR ("Database is empty, cowardly refusing to search it.\n");
+      goto errorexit;
+   }
+
+   if (!ev) {
+      XERROR ("Failed to create expression execution context.\n");
+      goto errorexit;
+   }
+
+   if (!tokens) {
+      XERROR ("Failed to tokenise input expression.\n");
+      goto errorexit;
+   }
+
+   for (size_t i=0; i<num_records; i++) {
+      int iresult = -1;
+      rotrec_t *rr = rotsit_get_record (rs, i);
+
+      ltokens = xstr_cpyarray (tokens);
+      if (!fsubst (ltokens, rr)) {
+         XERROR ("Error during variable substitution.\n");
+         goto errorexit;
+      }
+
+      char *sresult = eval_execute (ev, (const void **)ltokens);
+      if (!sresult) {
+         XERROR ("Internal error during expression evaluation.\n");
+         for (size_t i=0; ltokens[i]; i++) {
+            XERROR ("Token %i: [%s]\n", i, ltokens[i]);
+         }
+
+         goto errorexit;
+      }
+      int nparams = sscanf (sresult, "%i", &iresult);
+      XERROR ("RESULT: [%s]\n", sresult);
+      free (sresult);
+
+      if (iresult==1) {
+         xvector_t *tmp = xvector_ins_tail (results, rr);
+         if (!tmp) {
+            XERROR ("Out of memory error.\n");
+            goto errorexit;
+         }
+         results = tmp;
+         XERROR ("Matched\n");
+      }
+
+      xstr_delarray (ltokens); ltokens = NULL;
+   }
+
+   error = false;
+
+errorexit:
+   if (error) {
+      for (size_t i=0; ret && *ret; i++) {
+         rotrec_del (ret[i]);
+      }
+      free (ret);
+      ret = NULL;
+   }
+
+   eval_del (ev);
+   xstr_delarray (tokens);
+   xstr_delarray (ltokens);
+
+   ret = xvector_native (results);
+
+   if (!ret[0]) {
+      XERROR ("Warning: filter [%s] matched no records\n", expr);
+   }
    xvector_free (results);
    return ret;
 }

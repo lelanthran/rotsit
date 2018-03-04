@@ -150,7 +150,7 @@ static uint32_t cmd_list (rotsit_t *rs, char *msg, const char **args)
 
    rotrec_t **results = rotsit_filter (rs, args[1]);
    if (!results) {
-      XERROR ("Internal error in filer function\n");
+      XERROR ("Internal error in filter function\n");
       return 0x00ff;
    }
 

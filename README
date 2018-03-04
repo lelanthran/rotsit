@@ -38,7 +38,7 @@ expr:       operand operator operand
 node:       expr | (expr)
 
 Each node in the tree will return either a true or a false for a given
-field, this bool is propogated up the tree. The above example becomes are
+field, this bool is propagated up the tree. The above example becomes are
 tree that looks like this:
 
   (OR) -+---------> (AND) -+---1----> (>) -+------> field1
