@@ -281,6 +281,8 @@ const char *pdate_errmsg (enum pdate_errcode_t pd)
 void pdate_test (void)
 {
    const char *dates[] = {
+      " 0 ",
+      " 1 ",
      "12 June 2016",
      "12 June ",
      "June 12",

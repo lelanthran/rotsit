@@ -36,18 +36,35 @@ static void *exec_op (const void *p_op, void const *p_lhs, void const *p_rhs)
    time_t tv_lhs, tv_rhs;
 
    // First try to parse this as a date. If it's a valid date we use it as
-   // a large integer
+   // a large integer.
    d_err_lhs = pdate_parse (s_lhs, &tv_lhs, true);
    d_err_rhs = pdate_parse (s_rhs, &tv_rhs, true);
 
-   XERROR ("lhs: [%s] rhs: [%s]\n", s_lhs, s_rhs);
+   XERROR (" [%s] (%s) [%s]\n", s_lhs, s_op, s_rhs);
 
    if (d_err_lhs==pdate_valid && d_err_rhs==pdate_valid) {
-      lhs = (int32_t)tv_lhs;
-      rhs = (int32_t)tv_rhs;
-      XERROR ("Read dates [0x%" PRIx64 "], [0x%" PRIx64 "] \n",
+      // At this point the operands could still be numbers and not dates.
+      bool is_date = false;
+      for (size_t i=1; s_lhs[i]; i++) {
+         if (!isxdigit (s_lhs[i])) {
+            is_date = true;
+            break;
+         }
+      }
+      for (size_t i=1; !is_date && s_rhs[i]; i++) {
+         if (!isxdigit (s_rhs[i])) {
+            is_date = true;
+            break;
+         }
+      }
+
+      if (is_date) {
+         lhs = (int32_t)tv_lhs;
+         rhs = (int32_t)tv_rhs;
+         XERROR ("Read dates [0x%" PRIx64 "], [0x%" PRIx64 "] \n",
                lhs, rhs);
-      parsed = true;
+         parsed = true;
+      }
    }
 
    // Next, try to read lhs/rhs as a number. If both are numbers
@@ -89,6 +106,7 @@ static void *exec_op (const void *p_op, void const *p_lhs, void const *p_rhs)
    }
 
    sprintf (tmp, "%i", result);
+   XERROR ("Returning [%s]\n", tmp);
    return xstr_dup (tmp);
 }
 
