@@ -83,10 +83,10 @@ static void *exec_op (const void *p_op, void const *p_lhs, void const *p_rhs)
    // the equality and non-equality.
    if (!parsed) {
       if (*s_op == '!') {
-         sprintf (tmp, "%i", strcmp (s_lhs, s_rhs)!=0);
+         sprintf (tmp, "%i", strstr (s_rhs, s_lhs)==NULL);
       }
       if (*s_op == '=') {
-         sprintf (tmp, "%i", strcmp (s_lhs, s_rhs)==0);
+         sprintf (tmp, "%i", strstr (s_rhs, s_lhs)!=NULL);
       }
       sprintf (tmp, "%i", result);
       return xstr_dup (tmp);
