@@ -887,7 +887,7 @@ bool rotrec_reopen (rotrec_t *rr, const char *message)
    if (!rr || !message)
       return false;
 
-   char *str_status = xstr_dup ("OPEN+");
+   char *str_status = xstr_dup ("REOPEN");
    char *str_user = make_username ();
    char *str_time = make_time (0);
    char *str_message = xstr_cat ("REOPEN due to: ", message, NULL);
