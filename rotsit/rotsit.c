@@ -82,13 +82,14 @@ static void *exec_op (const void *p_op, void const *p_lhs, void const *p_rhs)
    // strings. Note that not all operators are defined for strings, only
    // the equality and non-equality.
    if (!parsed) {
+      tmp [0] = '0';
+      tmp [1] = 0;
       if (*s_op == '!') {
          sprintf (tmp, "%i", strstr (s_rhs, s_lhs)==NULL);
       }
       if (*s_op == '=') {
          sprintf (tmp, "%i", strstr (s_rhs, s_lhs)!=NULL);
       }
-      sprintf (tmp, "%i", result);
       return xstr_dup (tmp);
    }
 
