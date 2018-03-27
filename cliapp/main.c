@@ -9,13 +9,18 @@
 #include "xerror/xerror.h"
 #include "xstring/xstring.h"
 #include "xcfg/xcfg.h"
+#include "xfile/xfile.h"
+
+#define EDITORVAR          "EDITOR"
 
 #ifdef PLATFORM_WINDOWS
 #define UNAMEVAR        "\%USERNAME\%"
 #define EDITOR          "\%EDITOR\%"
+#define ED_DEFAULT      "notepad.exe"
 #else
 #define UNAMEVAR        "$USER"
 #define EDITOR          "$EDITOR"
+#define ED_DEFAULT      "vi"
 #endif
 
 // All the user commands are handled by functions that follow this
@@ -295,6 +300,8 @@ int main (int argc, char **argv)
    int ret = EXIT_FAILURE;
 
    char *msg = NULL;
+   char *tmp_fname = NULL;
+   char *edit_cmd = NULL;
    FILE *inf = NULL;
    rotsit_t *issues = NULL;
    bool issues_dirty = false;
@@ -402,7 +409,39 @@ int main (int argc, char **argv)
    // If command specified needs a message, check that we have a message
    // or start the EDITOR so that the user can write a message.
    if (needs_message (argv[cmdidx]) && !msg) {
-      // TODO: Start the editor
+      // Use a default editor. If environment editor exists, use that
+      // instead. Either way there will be a legit string in editor.
+      const char *editor = ED_DEFAULT;
+      const char *env_editor = getenv (EDITORVAR);
+      if (env_editor && env_editor[0]) {
+         editor = env_editor;
+      }
+
+      tmp_fname = xfile_tmpname (NULL, NULL);
+      if (!tmp_fname) {
+         XERROR ("Unable to create a temporary file, aborting\n:%m\n");
+         goto errorexit;
+      }
+      edit_cmd = xstr_cat (editor, " ", tmp_fname, NULL);
+      if (!edit_cmd) {
+         XERROR ("Out of memory\n");
+         goto errorexit;
+      }
+
+      if (system (edit_cmd)!=0) {
+         XERROR ("Failed to run editor [%s]\n", edit_cmd);
+         goto errorexit;
+      }
+
+      msg = xstr_readfile (tmp_fname);
+      if (msg==NULL) {
+         XERROR ("Out of memory error\n");
+         goto errorexit;
+      }
+      if (*msg==0) {
+         XERROR ("No message specified, aborting\n");
+         goto errorexit;
+      }
    }
 
    // Execute the command - the return value is 4 bytes:
@@ -432,12 +471,13 @@ errorexit:
          XERROR ("Unable to write file [%s]: %m\n", dbfile);
       } else {
          rotsit_write (issues, outf);
-         XERROR ("WROTE FILE!!!!!!!!!!!!!!!!!!!!!!!!!!!\n");
          fclose (outf);
       }
    }
 
    free (msg);
+   free (tmp_fname);
+   free (edit_cmd);
    free (fcontents);
    xerror_set_logfile (NULL);
    rotsit_del (issues);

@@ -509,6 +509,7 @@ void lower_string (char *src)
    }
 }
 
+#if 0    // Will come in handy when I add in case-insensitive matching
 static bool istrcmp (const char *lhs, const char *rhs)
 {
    if (!lhs && rhs)
@@ -522,6 +523,7 @@ static bool istrcmp (const char *lhs, const char *rhs)
 
    return *lhs == *rhs;
 }
+#endif
 
 rotrec_t **rotsit_filter (rotsit_t *rs, const char *expr)
 {
@@ -567,7 +569,7 @@ rotrec_t **rotsit_filter (rotsit_t *rs, const char *expr)
       int iresult = -1;
       rotrec_t *rr = rotsit_get_record (rs, i);
 
-      ltokens = xstr_cpyarray (tokens);
+      ltokens = xstr_cpyarray ((const char **)tokens);
       if (!fsubst (ltokens, rr)) {
          XERROR ("Error during variable substitution.\n");
          goto errorexit;
@@ -582,7 +584,9 @@ rotrec_t **rotsit_filter (rotsit_t *rs, const char *expr)
 
          goto errorexit;
       }
-      int nparams = sscanf (sresult, "%i", &iresult);
+
+      // TODO: Remove this diagnostic
+      sscanf (sresult, "%i", &iresult);
       XERROR ("RESULT: [%s]\n", sresult);
       free (sresult);
 
