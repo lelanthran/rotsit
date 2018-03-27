@@ -476,7 +476,10 @@ errorexit:
    }
 
    free (msg);
-   free (tmp_fname);
+   if (tmp_fname) {
+      xfile_rm (tmp_fname, "r");
+      free (tmp_fname);
+   }
    free (edit_cmd);
    free (fcontents);
    xerror_set_logfile (NULL);
