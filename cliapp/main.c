@@ -12,8 +12,10 @@
 
 #ifdef PLATFORM_WINDOWS
 #define UNAMEVAR        "\%USERNAME\%"
+#define EDITOR          "\%EDITOR\%"
 #else
 #define UNAMEVAR        "$USER"
+#define EDITOR          "$EDITOR"
 #endif
 
 // All the user commands are handled by functions that follow this
@@ -30,7 +32,7 @@ static uint32_t cmd_add (rotsit_t *rs, char *msg, const char **args)
 
    rotrec_t *rec = rotrec_new (msg);
    if (!rec) {
-      XERROR ("Unable to open issue [%s]\n");
+      XERROR ("Unable to open issue [%s]\n", msg);
       goto errorexit;
    }
 
@@ -213,16 +215,16 @@ void print_help_msg (void)
 "  --user:     Set the username (defaults to " UNAMEVAR ")",
 "",
 "All commands which require a message will check --msg and --file",
-"options for the message. If no message is specified, $EDITOR is used",
+"options for the message. If no message is specified, "EDITOR" is used",
 "to open an editor in which the user may type in the message.",
 "",
 "commands:",
-"  add               Adds a new issue, $EDITOR used.",
+"  add               Adds a new issue, "EDITOR" used.",
 "  show <id>         Displays an issue.",
-"  reopen <id>       Reopens a closed issue, $EDITOR used",
-"  comment <id>      Adds a comment to an issue, $EDITOR used.",
-"  dup <id1> <id2>   Marks id1 as a duplicate of id2, $EDITOR used.",
-"  close <id>        Closes issue with id, $EDITOR used.",
+"  reopen <id>       Reopens a closed issue, "EDITOR" used",
+"  comment <id>      Adds a comment to an issue, "EDITOR" used.",
+"  dup <id1> <id2>   Marks id1 as a duplicate of id2, "EDITOR" used.",
+"  close <id>        Closes issue with id, "EDITOR" used.",
 "  export            Plain-text export of every issue",
 "  list <listexpr>   Short-form list of all the entries matching listexpr",
 "",
@@ -358,14 +360,14 @@ int main (int argc, char **argv)
          XERROR ("Unable to create database file [%s]\n", dbfile);
          goto errorexit;
       }
-      fclose (inf);
-      inf = NULL;
    }
+   fclose (inf);
+   inf = NULL;
 
    fcontents = xstr_readfile (dbfile);
    if (!fcontents) {
-      XERROR ("Unable to read issues from [%s]\n", filename);
-      goto errorexit;   // TODO: Double hceck this - might return NULL for
+      XERROR ("Unable to read issues from [%s]\n", dbfile);
+      goto errorexit;   // TODO: Double check this - might return NULL for
                         // empty file and we must be able to work with an
                         // empty file.
    }
@@ -398,12 +400,12 @@ int main (int argc, char **argv)
    }
 
    // If command specified needs a message, check that we have a message
-   // or use start the EDITOR so that the user can write a message.
+   // or start the EDITOR so that the user can write a message.
    if (needs_message (argv[cmdidx]) && !msg) {
       // TODO: Start the editor
    }
 
-   // Execute the command - the reutrn value is 4 bytes:
+   // Execute the command - the return value is 4 bytes:
    // ret[0] = return status (0=success)
    // ret[1] = object now dirty, command mutated the object
    // ret[2], ret[3] = RFU
