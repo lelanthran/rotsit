@@ -350,7 +350,7 @@ int main (int argc, char **argv)
          goto errorexit;
       }
       putenv (tmp);
-      free (tmp);
+      // free (tmp);
    }
 
    const char *dbfile = xcfg_get ("none", "dbfile");
