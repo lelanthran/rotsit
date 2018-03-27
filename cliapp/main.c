@@ -46,6 +46,8 @@ static uint32_t cmd_add (rotsit_t *rs, char *msg, const char **args)
       goto errorexit;
    }
 
+   XLOG ("Added new issue: %s\n", rotrec_get_field (rec, RF_GUID));
+
    ret = 0x00000100;
 
 errorexit:
