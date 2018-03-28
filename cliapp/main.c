@@ -41,12 +41,12 @@ static uint32_t cmd_add (rotsit_t *rs, char *msg, const char **args)
       goto errorexit;
    }
 
+   XLOG ("Added new issue: %s\n", rotrec_get_field (rec, RF_GUID));
+
    if (!rotsit_add_record (rs, rec)) {
       XERROR ("Unable to add issue to database [%s]\n", msg);
       goto errorexit;
    }
-
-   XLOG ("Added new issue: %s\n", rotrec_get_field (rec, RF_GUID));
 
    ret = 0x00000100;
 

@@ -9,16 +9,16 @@ RANDOM=$$$(date +%s)
 
 export VERSION=1
 
-for X in {1..3}; do
+for X in {1..250}; do
 
    username=${users[$RANDOM % ${#users[@]}]}
 
-   valgrind ./main-d.elf --user=$username add --msg="`fortune -l`" &> tmp
+   ./main-d.elf --user=$username add --msg="`fortune -l`" &> tmp
 
    guid="`grep \"Added new issue:\" tmp | cut -f 5- -d :`"
 
    if [ "$(($RANDOM % 5))" -eq 0 ]; then
-      to_comment+=$guid
+      to_comment+=($guid)
    fi
 
    cat tmp
@@ -30,12 +30,12 @@ done
 
 echo "--------------------------------------"
 
-for X in $to_comment; do
+for X in ${to_comment[@]}; do
 
    echo Preparing to comment on $X
    username=${users[$RANDOM % ${#users[@]}]}
 
-   valgrind ./main-d.elf --user=$username comment $X --msg="`fortune -l`"
+   ./main-d.elf --user=$username comment $X --msg="`fortune -l`"
 
    cp issues.sitdb issues.sitdb.$VERSION
    VERSION=$(($VERSION + 1))

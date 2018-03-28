@@ -65,6 +65,8 @@ extern "C" {
    bool rotrec_dup (rotrec_t *rr, const char *id);
    bool rotrec_reopen (rotrec_t *rr, const char *message);
 
+   const char *rotrec_get_field (rotrec_t *rr, size_t field);
+
    bool rotrec_dump (rotrec_t *rr, FILE *outf);
 
 #ifdef __cplusplus
