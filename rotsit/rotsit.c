@@ -686,7 +686,6 @@ static uint64_t local_rand (size_t num_bytes)
 
    for (size_t i=0; i<num_bytes+1; i++) {
       uint32_t r = rotsit_user_rand ();
-      printf ("RANDOM: 0x%x\n", r);
       uint8_t t = (r >> SHIFTWIDTH) & 0xff;
       ret = ret << 8;
       ret |= t;
