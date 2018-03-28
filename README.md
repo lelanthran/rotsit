@@ -7,7 +7,7 @@ issue tracker, this isn't it. Actually, even if you really wanted an
 improper issue tracker this also wouldn't be it (If you find an _improper_
 issue tracker please let me know - I'd love to see what that looks like).
 
-This is a simple issue tracker that uses a plain-text database to store
+This is a _simple_ issue tracker. It uses a plain-text database to store
 issues in a manner that a source control system such as Git or SVN can track.
 **RotSIT** was tested on Linux and Windows. It uses a rather idiosyncratic
 build process that works on both OSes (and was briefly tested on one of the
@@ -92,4 +92,9 @@ well-defined chunks that are easy for `patch` to figure out. Finally, no
 deletions are allowed (although it wouldn't conflict even if we did do
 deletions).
 
+### I have trouble building this
+That's not a question.
 
+### When will you provide prebuilt binaries?
+Soon. Very soon. Possibly not more than a week away from today. Check back
+often. Tell your friends too.
