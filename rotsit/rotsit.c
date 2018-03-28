@@ -729,16 +729,17 @@ static char *make_username (void)
 
 // TODO: Make this function thread-safe. Might need a mutex because
 // localtime_r is not available on MingW32.
-static char *make_time (uint32_t time_s)
+static char *make_time (time_t time_s)
 {
    char *str_time = NULL;
    if (!time_s) {
       time_s = time (NULL);
    }
 
-   str_time = xstr_dup (asctime (localtime ((time_t *)&time_s)));
+   str_time = xstr_dup (asctime (localtime (&time_s)));
    if (!str_time) {
       XERROR ("Out of memory\n");
+      return NULL;
    }
 
    char *tmp = strchr (str_time, '\n');
