@@ -25,10 +25,6 @@
 
 // For testing only
 static uint64_t my_seed = 1;
-static void my_srand (uint32_t seed)
-{
-   my_seed ^= seed;
-}
 
 static void my_setseed (const char *msg)
 {
@@ -239,13 +235,13 @@ void print_help_msg (void)
 "rotsit [--option[=value]] command [command-arguments]",
 "  Options:",
 "  --help:     Print this message, then exit with success",
-"  --msg:      Provide a message for commands that take a message",
+"  --message:  Provide a message for commands that take a message",
 "  --file:     Read a message from file for commands that take a message",
 "  --dbfile:   Use specified filename as the db (defaults to 'issues.sitdb')",
 "  --user:     Set the username (defaults to " UNAMEVAR ")",
 "  --fastrand: (Used for testing - do not use)",
 "",
-"All commands which require a message will check --msg and --file",
+"All commands which require a message will check --message and --file",
 "options for the message. If no message is specified, "EDITOR" is used",
 "to open an editor in which the user may type in the message.",
 "",
@@ -339,7 +335,7 @@ int main (int argc, char **argv)
       const char *def;
    } options[] = {
       { "help",      NULL },
-      { "msg",       NULL },
+      { "message",   NULL },
       { "file",      NULL },
       { "user",      NULL },
       { "dbfile",    "issues.sitdb" },
@@ -370,7 +366,7 @@ int main (int argc, char **argv)
    }
 
    const char *filename = xcfg_get ("none", "file");
-   msg = xstr_dup (xcfg_get ("none", "msg"));
+   msg = xstr_dup (xcfg_get ("none", "message"));
    if (!msg && filename) {
       msg = xstr_readfile (filename);
    }
