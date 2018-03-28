@@ -1,0 +1,13 @@
+To build this software you need to get the extended C library from:
+https://sourceforge.net/projects/libxc/
+
+You do not need the sources for libxc, the binary download for your
+platform will work just fine.
+
+Install the libraries into $HOME/lib, with the headers in $HOME/include.
+
+Then run make in this directory, or mingw32-make if you are on Windows.
+
+If you are unable to build this software please wait a little while;
+within the next few days I will put up prebuilt binaries for download.
+
