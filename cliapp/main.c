@@ -23,6 +23,26 @@
 #define ED_DEFAULT      "vi"
 #endif
 
+// For testing only
+static uint64_t my_seed = 1;
+static void my_srand (uint32_t seed)
+{
+   my_seed ^= seed;
+}
+
+static void my_setseed (const char *msg)
+{
+   for (size_t i=0; msg[i]; i++) {
+      my_seed = (my_seed << 8) ^ msg[i];
+   }
+}
+
+static uint32_t my_rand (void)
+{
+   my_seed = ((my_seed * 1103515245) + 12345) & 0xffffffff;
+   return (uint32_t) (my_seed & 0xffffffff);
+}
+
 // All the user commands are handled by functions that follow this
 // specification.
 typedef uint32_t (*cmdfptr_t) (rotsit_t *, char *, const char **);
@@ -32,6 +52,8 @@ static uint32_t cmd_add (rotsit_t *rs, char *msg, const char **args)
 {
    uint32_t ret = 0x000001ff;
    args = args;
+
+   my_setseed (msg);
 
    XLOG ("Creating new record (This may take a few minutes)\n");
 
@@ -89,6 +111,7 @@ static uint32_t cmd_show (rotsit_t *rs, char *msg, const char **args)
 
 static uint32_t cmd_comment (rotsit_t *rs, char *msg, const char **args)
 {
+   my_setseed (msg);
 
    if (!rotrec_add_comment (safe_rotrec_by_id (rs, args), msg)) {
       return 0x00ff;
@@ -220,6 +243,7 @@ void print_help_msg (void)
 "  --file:     Read a message from file for commands that take a message",
 "  --dbfile:   Use specified filename as the db (defaults to 'issues.sitdb')",
 "  --user:     Set the username (defaults to " UNAMEVAR ")",
+"  --fastrand: (Used for testing - do not use)",
 "",
 "All commands which require a message will check --msg and --file",
 "options for the message. If no message is specified, "EDITOR" is used",
@@ -321,6 +345,8 @@ int main (int argc, char **argv)
       { "dbfile",    "issues.sitdb" },
    };
 
+   my_seed = time (NULL);
+
    for (size_t i=0; i<sizeof options/sizeof options[0]; i++) {
       xcfg_configure ("none", options[i].name, "none", options[i].def);
    }
@@ -331,6 +357,11 @@ int main (int argc, char **argv)
    }
 
    // Check which options are set
+   const char *fastrand = xcfg_get ("none", "fastrand");
+   if (fastrand) {
+      rotsit_user_rand = my_rand;
+   }
+
    const char *help_requested = xcfg_get ("none", "help");
    if (help_requested) {
       ret = EXIT_SUCCESS;

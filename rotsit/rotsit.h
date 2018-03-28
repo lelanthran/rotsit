@@ -69,6 +69,8 @@ extern "C" {
 
    bool rotrec_dump (rotrec_t *rr, FILE *outf);
 
+   uint32_t (*rotsit_user_rand) (void);
+
 #ifdef __cplusplus
 };
 #endif

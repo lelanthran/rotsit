@@ -665,18 +665,7 @@ bool rotsit_add_record (rotsit_t *rs, rotrec_t *rr)
    return true;
 }
 
-// TODO: For testing only, remove when real rand function is used.
-static uint64_t my_seed = 1;
-static void my_srand (uint32_t seed)
-{
-   my_seed ^= seed;
-}
-
-static uint32_t my_rand (void)
-{
-   my_seed = ((my_seed * 1103515245) + 12345) & 0xffffffff;
-   return (uint32_t) (my_seed & 0xffffffff);
-}
+uint32_t (*rotsit_user_rand) (void);
 
 static uint64_t local_rand (size_t num_bytes)
 {
@@ -687,19 +676,16 @@ static uint64_t local_rand (size_t num_bytes)
 #endif
 
    uint64_t ret = 0;
-   // TODO: Must put this back in when using real rand functions
-#if 0
-   static uint32_t seed = 0;
-   if (!seed) {
-      seed = time (NULL);
-      my_srand (seed);
-   }
-#endif
 
    num_bytes = num_bytes > 8 ? 8 : num_bytes;
 
+   if (!rotsit_user_rand) {
+      xcrypto_random ((uint8_t *)&ret, num_bytes);
+      return ret;
+   }
+
    for (size_t i=0; i<num_bytes+1; i++) {
-      uint32_t r = my_rand ();
+      uint32_t r = rotsit_user_rand ();
       printf ("RANDOM: 0x%x\n", r);
       uint8_t t = (r >> SHIFTWIDTH) & 0xff;
       ret = ret << 8;
@@ -773,11 +759,6 @@ rotrec_t *rotrec_new (const char *msg)
       NULL, NULL,
    };
 
-   // TODO: For testing only, remove when real rand function is used.
-   for (size_t i=0; msg[i]; i++) {
-      my_seed = (my_seed << 8) ^ msg[i];
-   }
-
    rotrec_t *ret = malloc (sizeof *ret);
 
    if (!ret) {
@@ -848,11 +829,6 @@ bool rotrec_add_comment (rotrec_t *rr, const char *comment)
    bool error = true;
    char *new_fields[4] = { NULL, NULL, NULL, NULL };
    xvector_t *newxv = NULL;
-
-   // TODO: For testing only, remove when real rand function is used.
-   for (size_t i=0; comment[i]; i++) {
-      my_seed = (my_seed << 8) ^ comment[i];
-   }
 
    if (!rr || !comment)
       return false;
