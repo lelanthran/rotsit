@@ -61,7 +61,7 @@ static void *exec_op (const void *p_op, void const *p_lhs, void const *p_rhs)
       if (is_date) {
          lhs = (int32_t)tv_lhs;
          rhs = (int32_t)tv_rhs;
-         XERROR ("Read dates [0x%" PRIx64 "], [0x%" PRIx64 "] \n",
+         XERROR ("Read dates [0x%016" PRIx64 "], [0x%016" PRIx64 "] \n",
                lhs, rhs);
          parsed = true;
       }
@@ -70,8 +70,8 @@ static void *exec_op (const void *p_op, void const *p_lhs, void const *p_rhs)
    // Next, try to read lhs/rhs as a number. If both are numbers
    // then we assume that the integer operators apply
    if (!parsed) {
-      int i_lhs = sscanf (s_lhs, "%" PRIx64, &lhs);
-      int i_rhs = sscanf (s_rhs, "%" PRIx64, &rhs);
+      int i_lhs = sscanf (s_lhs, "0x%016" PRIx64, &lhs);
+      int i_rhs = sscanf (s_rhs, "0x%016" PRIx64, &rhs);
 
       if (i_lhs==1 && i_rhs==1) {
          parsed = true;
@@ -708,7 +708,7 @@ static char *make_guid (void)
    // xcrypto_random ((uint8_t *)&guid, sizeof guid);
    guid = local_rand (8);
 
-   sprintf (str_guid, "0x%" PRIx64, guid);
+   sprintf (str_guid, "0x%016" PRIx64, guid);
    return str_guid;
 }
 
