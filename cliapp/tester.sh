@@ -13,7 +13,7 @@ for X in {1..250}; do
 
    username=${users[$RANDOM % ${#users[@]}]}
 
-   ./main-d.elf --fastrand --user=$username add --msg="`fortune -l`" &> tmp
+   ./main-d.elf --fastrand --user=$username add --message="`fortune -l`" &> tmp
 
    guid="`grep \"Added new issue:\" tmp | cut -f 5- -d :`"
 
@@ -35,7 +35,7 @@ for X in ${to_comment[@]}; do
    echo Preparing to comment on $X
    username=${users[$RANDOM % ${#users[@]}]}
 
-   ./main-d.elf --fastrand --user=$username comment $X --msg="`fortune -l`"
+   ./main-d.elf --fastrand --user=$username comment $X --message="`fortune -l`"
 
    cp issues.sitdb issues.sitdb.$VERSION
    VERSION=$(($VERSION + 1))
