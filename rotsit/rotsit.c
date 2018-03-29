@@ -40,7 +40,7 @@ static void *exec_op (const void *p_op, void const *p_lhs, void const *p_rhs)
    d_err_lhs = pdate_parse (s_lhs, &tv_lhs, true);
    d_err_rhs = pdate_parse (s_rhs, &tv_rhs, true);
 
-   XERROR (" [%s] (%s) [%s]\n", s_lhs, s_op, s_rhs);
+   // XERROR (" [%s] (%s) [%s]\n", s_lhs, s_op, s_rhs);
 
    if (d_err_lhs==pdate_valid && d_err_rhs==pdate_valid) {
       // At this point the operands could still be numbers and not dates.
@@ -90,6 +90,14 @@ static void *exec_op (const void *p_op, void const *p_lhs, void const *p_rhs)
       if (*s_op == '=') {
          sprintf (tmp, "%i", strstr (s_rhs, s_lhs)!=NULL);
       }
+      if (tmp[0] == '0') {
+         if (*s_op == '!') {
+            sprintf (tmp, "%i", strstr (s_lhs, s_rhs)==NULL);
+         }
+         if (*s_op == '=') {
+            sprintf (tmp, "%i", strstr (s_lhs, s_rhs)!=NULL);
+         }
+      }
       return xstr_dup (tmp);
    }
 
@@ -107,13 +115,16 @@ static void *exec_op (const void *p_op, void const *p_lhs, void const *p_rhs)
    }
 
    sprintf (tmp, "%i", result);
-   XERROR ("Returning [%s]\n", tmp);
    return xstr_dup (tmp);
 }
 
 static eval_type_t check_type (void const *token)
 {
    const char *s_token = token;
+
+   if (s_token[1] && s_token[1]!='=')
+      return eval_OPERAND;
+
    switch (*s_token) {
       case '*':
       case '/':   return eval_HIGH_OPS;
@@ -596,7 +607,7 @@ rotrec_t **rotsit_filter (rotsit_t *rs, const char *expr)
 
       // TODO: Remove this diagnostic
       sscanf (sresult, "%i", &iresult);
-      XERROR ("RESULT: [%s]\n", sresult);
+      // XERROR ("RESULT: [%s]\n", sresult);
       free (sresult);
 
       if (iresult==1) {
@@ -606,7 +617,7 @@ rotrec_t **rotsit_filter (rotsit_t *rs, const char *expr)
             goto errorexit;
          }
          results = tmp;
-         XERROR ("Matched\n");
+         // XERROR ("Matched\n");
       }
 
       xstr_delarray (ltokens); ltokens = NULL;

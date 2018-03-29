@@ -4,6 +4,7 @@
 #include "eval/eval.h"
 
 #include "xvector/xvector.h"
+#include "xerror/xerror.h"
 
 struct eval_t {
    xvector_t *st1;
@@ -61,12 +62,16 @@ static bool push (xvector_t **st, eval_copy_t *cf, const void *elm)
       return true;
 
    void *tmp = cf (elm);
-   if (!tmp)
+   if (!tmp) {
+      XERROR ("Copy function failure [%s]\n", (char *)elm);
       return false;
+   }
 
    xvector_t *tmpv = xvector_ins_tail ((*st), tmp);
-   if (!tmpv)
+   if (!tmpv) {
+      XERROR ("Malloc failure\n");
       return false;
+   }
 
    (*st) = tmpv;
    return true;
@@ -74,8 +79,10 @@ static bool push (xvector_t **st, eval_copy_t *cf, const void *elm)
 
 static void *pop (xvector_t **st)
 {
-   if (!st || !(*st) || XVECT_LENGTH (*st)==0)
+   if (!st || !(*st) || XVECT_LENGTH (*st)==0) {
+      XERROR ("Pop failure [%p] [ %p] [%zu]\n", st, (*st), XVECT_LENGTH (*st));
       return NULL;
+   }
 
    return xvector_del_tail ((*st));
 }
@@ -95,6 +102,9 @@ static bool apply (eval_t *ev)
    if (!lhs || !rhs || !op) {
        push (&ev->st1, ev->fcopy, lhs);
        push (&ev->st1, ev->fcopy, rhs);
+
+       XERROR ("Apply NULLCHECK failed: [%p] [%p] [%p]\n", lhs, rhs, op);
+
        goto errorexit;
    }
 
@@ -103,6 +113,10 @@ static bool apply (eval_t *ev)
    ev->fdel (lcpy);
 
 errorexit:
+
+   if (error) {
+      XERROR ("Apply failure: [%p]\n", lcpy);
+   }
 
    ev->fdel (lhs);
    ev->fdel (rhs);
@@ -127,6 +141,7 @@ void *eval_execute (eval_t *ev, const void **tokens)
 {
    bool apply_immed = false,
         already_applied = false;
+
    for (size_t i=0; tokens[i]; i++) {
       switch (ev->ftype (tokens[i])) {
          case eval_UNKNOWN:   return NULL;
@@ -168,7 +183,8 @@ void *eval_execute (eval_t *ev, const void **tokens)
       return NULL;
    }
 
-   return pop (&ev->st1);
+   void *ret = pop (&ev->st1);
+   return ret;
 }
 
 
