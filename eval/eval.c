@@ -79,8 +79,8 @@ static bool push (xvector_t **st, eval_copy_t *cf, const void *elm)
 
 static void *pop (xvector_t **st)
 {
-   if (!st || !(*st) || XVECT_LENGTH (*st)==0) {
-      XERROR ("Pop failure [%p] [ %p] [%zu]\n", st, (*st), XVECT_LENGTH (*st));
+   if (!st || !(*st) || XVECT_LENGTH ((*st))==0) {
+      XERROR ("Pop failure [%p] [ %p] [%zu]\n", st, (*st), XVECT_LENGTH ((*st)));
       return NULL;
    }
 
