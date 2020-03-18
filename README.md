@@ -19,7 +19,7 @@ Issues can be opened, closed, reopened and commented upon. A rudimentary
 tool is built into the software that can filter issues according to
 certain criteria (date, username, etc).
 
-However since this is a plain-text database using newlines in the field
+However since this is a plain-text database using newlines in the record
 separators you can use any text processing tool to search through the
 database.
 
