@@ -1,0 +1,4 @@
+1. Remove dependencies on third-party lib (libxc). Maybe move libds sources
+into this program so that there are no third-party libs.
+
+2. Fix the build process to produce correctly named executables and binaries.
