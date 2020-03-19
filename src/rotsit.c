@@ -11,10 +11,10 @@
 #include "xerror/xerror.h"
 #include "xcrypto/xcrypto.h"
 
-#include "rotsit/rotsit.h"
-#include "pdate/pdate.h"
-#include "eval/eval.h"
-#include "pdate/pdate.h"
+#include "rotsit.h"
+#include "pdate.h"
+#include "eval.h"
+#include "pdate.h"
 
 #define RECORD_DELIM       ("f\b\n")
 #define FIELD_DELIM        ("f\b")

@@ -3,7 +3,7 @@
 #include <stdbool.h>
 #include <stdlib.h>
 
-#include "rotsit/rotsit.h"
+#include "rotsit.h"
 
 #include "xstring/xstring.h"
 

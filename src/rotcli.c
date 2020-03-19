@@ -4,7 +4,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#include "rotsit/rotsit.h"
+#include "rotsit.h"
 
 #include "xerror/xerror.h"
 #include "xstring/xstring.h"

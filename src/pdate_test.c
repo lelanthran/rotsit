@@ -1,7 +1,7 @@
 
 #include <stdio.h>
 
-#include "pdate/pdate.h"
+#include "pdate.h"
 
 int main (void)
 {
