@@ -230,7 +230,7 @@ static cmdfptr_t find_cmd (const char *name)
 void print_help_msg (void)
 {
    static const char *msg[] = {
-"Revenge of the Simple Issue Tracker (0.0.1), c/line client",
+"Revenge of the Simple Issue Tracker (0.1.1), c/line client",
 "Usage:",
 "rotsit [--option[=value]] command [command-arguments]",
 "  Options:",
@@ -378,6 +378,9 @@ int main (int argc, char **argv)
          XERROR ("Out of memory\n");
          goto errorexit;
       }
+
+      int putenv (char *);
+
       putenv (tmp);
       // free (tmp);
    }

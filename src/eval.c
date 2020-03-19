@@ -98,6 +98,7 @@ static bool apply (eval_t *ev)
    void *rhs = pop (&ev->st1);
    void *lhs = pop (&ev->st1);
    void *op = pop (&ev->st2);
+   void *lcpy = NULL;
 
    if (!lhs || !rhs || !op) {
        push (&ev->st1, ev->fcopy, lhs);
@@ -108,7 +109,7 @@ static bool apply (eval_t *ev)
        goto errorexit;
    }
 
-   void *lcpy = ev->frun (op, lhs, rhs);
+   lcpy = ev->frun (op, lhs, rhs);
    error = push (&ev->st1, ev->fcopy, lcpy) ? false : true;
    ev->fdel (lcpy);
 
