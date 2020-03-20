@@ -4,7 +4,6 @@
 
 #include <stdint.h>
 #include <stdbool.h>
-#include <stdlib.h>
 
 typedef bool (cdb_filter_func_t) (const void *lhs, const void *rhs);
 
