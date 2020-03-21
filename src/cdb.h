@@ -6,17 +6,20 @@
 #include <stdint.h>
 #include <stdbool.h>
 
-typedef bool (cdb_filter_func_t) (const void *lhs, const void *rhs);
+typedef bool (cdb_filter_func_t) (const char *record_name,
+                                  const char *record_value,
+                                  const void *fptr_arg);
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-   char **cdb_records_load (FILE *inf, int *errcode);
+   char **cdb_records_load (FILE *inf);
    bool cdb_records_save (char **records, FILE *outf);
    void cdb_records_free (char **records);
 
-   char **cdb_records_filter (char **records, cdb_filter_func_t *fptr);
+   char **cdb_records_filter (char **records, cdb_filter_func_t *fptr,
+                                              const void *fptr_arg);
 
    char *cdb_record_add (char ***records, const char *record);
 

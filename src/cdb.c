@@ -25,6 +25,17 @@ bool cdb_records_save (char **records, FILE *outf)
    return true;
 }
 
+void cdb_records_free (char **records)
+{
+   if (!records)
+      return;
+
+   for (size_t i=0; records[i]; i++) {
+      free (records[i]);
+   }
+   free (records);
+}
+
 char *cdb_record_add (char ***records, const char *record)
 {
    bool error = true;

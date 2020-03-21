@@ -8,7 +8,7 @@
 #define TEST_FILE       ("testfile.sitdb")
 
 
-bool write_new_file (void)
+static bool write_new_file (void)
 {
    bool error = true;
    char **records = NULL;
@@ -105,10 +105,32 @@ errorexit:
       fclose (outf);
    }
 
-   for (size_t i=0; records && records[i]; i++) {
-      free (records[i]);
+   cdb_records_free (records);
+
+   return !error;
+}
+
+static bool read_file (void)
+{
+   bool error = true;
+   char **records = NULL;
+   FILE *inf = NULL;
+
+   if (!(inf = fopen (TEST_FILE, "rt"))) {
+      fprintf (stderr, "Failed to open [%s] for reading: %m\n", TEST_FILE);
+      goto errorexit;
    }
-   free (records);
+
+   if (!(records = cdb_records_load (inf))) {
+      fprintf (stderr, "Failed to load [%s]: file corrupt\n", TEST_FILE);
+      goto errorexit;
+   }
+
+errorexit:
+
+   cdb_records_free (records);
+   if (inf)
+      fclose (inf);
 
    return !error;
 }
@@ -122,12 +144,10 @@ int main (int argc, char **argv)
       goto errorexit;
    }
 
-#if 0
    if (!(read_file ())) {
       fprintf (stderr, "reade test failure\n");
       goto errorexit;
    }
-#endif
 
    printf ("Testing CleverDB\n");
 
