@@ -9,6 +9,8 @@
 #define FIELD_DELIM              "f\b"
 
 
+char *strdup (const char *);
+
 bool cdb_records_save (char **records, FILE *outf)
 {
    if (!outf)
@@ -90,16 +92,25 @@ bool cdb_field_add (char **record, const char *name, const char *value)
    if (!(newfield = make_field (name, value)))
       return false;
 
-   char *tmp = realloc (*record, record_len + strlen (newfield) + 1);
+   char *tmp = realloc (*record, record_len + strlen (newfield) +
+                                 strlen (FIELD_DELIM) +
+                                 strlen (RECORD_DELIM) +
+                                 + 1);
    if (!tmp) {
       free (newfield);
       return NULL;
    }
    if (!*record)
-      tmp[0] = 0;
+      memcpy (tmp, RECORD_DELIM, strlen (RECORD_DELIM) + 1);
 
+   tmp[strlen (tmp) - strlen (RECORD_DELIM)] = 0;
    (*record) = tmp;
+   strcat (*record, FIELD_DELIM);
    strcat (*record, newfield);
+   strcat (*record, RECORD_DELIM);
+
+   free (newfield);
+
    return true;
 }
 
@@ -109,7 +120,7 @@ static char *find_field (char *record, const char *name)
    size_t name_len = strlen (name);
    size_t delim_len = strlen (FIELD_DELIM);
 
-   while ((field = strstr (&field[1], FIELD_DELIM))!=NULL) {
+   while ((field = strstr (field, FIELD_DELIM))!=NULL) {
       field += delim_len;
       if ((strncmp (field, name, name_len))==0)
          return field;
@@ -117,43 +128,65 @@ static char *find_field (char *record, const char *name)
    return NULL;
 }
 
-bool cdb_field_mod (char **record, const char *name, const char *value)
-{
-   char *newrec = NULL;
-   size_t delim_len = strlen (FIELD_DELIM);
-   if (!*record || !name || !value)
-      return false;
-
-   char *field = *record;
-   while ((field = strstr (field, FIELD_DELIM))!=NULL) {
-      field += delim_len;
-      char *fname = field
-      if ((strncmp (field, name, name_len))==0) {
-         if (!(cdb_field_add (&newrec, name, value))) {
-            free (newrec);
-            return false;
-         }
-         continue;
-      }
-   }
-
-   return false;
-}
-
 bool cdb_field_del (char **record, const char *name)
 {
-   return false;
+   char *newrec = NULL;
+   char *start = NULL,
+        *end = NULL;
+
+   size_t delim_len = strlen (FIELD_DELIM),
+          record_len = 0,
+          nchars = 0;
+
+
+   if (!*record || !name)
+      return false;
+
+   if (!(start = find_field (*record, name)))
+      return false;
+
+   start -= delim_len;
+
+   if (!(end = strstr (start + delim_len, FIELD_DELIM)))
+      end = &(*record)[record_len];
+
+   while (end[nchars])
+      nchars++;
+
+   memmove (start, end, nchars + 1);
+
+   return true;
+}
+
+bool cdb_field_mod (char **record, const char *name, const char *value)
+{
+#if 0
+   if (!(cdb_field_add (record, name, value)) ||
+       !(cdb_field_del (record, name))) {
+      return false;
+   }
+#endif
+   if (!(cdb_field_add (record, name, value))) {
+      fprintf (stderr, "Failed to add [%s:%s]\n", name, value);
+      return false;
+   }
+   if (!(cdb_field_del (record, name))) {
+      fprintf (stderr, "Failed to remove [%s:%s]\n", name, value);
+      return false;
+   }
+   fprintf (stderr, "Modified\n");
+   return true;
 }
 
 
 char *cdb_field_find (char *record, const char *name)
 {
-   return false;
+   return strdup (find_field (record, name));
 }
 
 void cdb_field_free (char *field)
 {
-   return false;
+   free (field);
 }
 
 

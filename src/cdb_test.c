@@ -58,7 +58,7 @@ bool write_new_file (void)
 
       char *field_value = cdb_field_find (record, fields[i].name);
       if (!field_value) {
-         fprintf (stderr, "Failed to find field [%s]\n", fields[i].name);
+         fprintf (stderr, "..Failed to find field [%s]\n", fields[i].name);
          goto errorexit;
       }
       printf ("Found field [%s:%s]\n", fields[i].name, field_value);
@@ -98,6 +98,8 @@ bool write_new_file (void)
    error = false;
 
 errorexit:
+
+   free (record);
 
    if (outf) {
       fclose (outf);
