@@ -61,7 +61,7 @@ bool write_new_file (void)
          fprintf (stderr, "..Failed to find field [%s]\n", fields[i].name);
          goto errorexit;
       }
-      printf ("Found field [%s:%s]\n", fields[i].name, field_value);
+      printf ("Found field [%s][%s]\n", fields[i].name, field_value);
       cdb_field_free (field_value);
       field_value = NULL;
 
@@ -83,12 +83,14 @@ bool write_new_file (void)
       goto errorexit;
    }
 
+   /*
    for (size_t i=0; i<sizeof test_records/sizeof test_records[0]; i++) {
       if (!(cdb_record_add (&records, test_records[i]))) {
          fprintf (stderr, "Failed to add record %zu to db\n", i);
          goto errorexit;
       }
    }
+   */
 
    if (!(cdb_records_save (records, outf))) {
       fprintf (stderr, "Failed to save records to [%s]: %m\n", TEST_FILE);

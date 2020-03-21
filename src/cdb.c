@@ -36,7 +36,6 @@ char *cdb_record_add (char ***records, const char *record)
       goto errorexit;
 
    strcpy (newrec, record);
-   strcat (newrec, RECORD_DELIM);
 
    while (*records && (*records)[nrecs])
       nrecs++;
@@ -92,22 +91,19 @@ bool cdb_field_add (char **record, const char *name, const char *value)
    if (!(newfield = make_field (name, value)))
       return false;
 
-   char *tmp = realloc (*record, record_len + strlen (newfield) +
+   char *tmp = realloc (*record, record_len +
+                                 strlen (newfield) +
                                  strlen (FIELD_DELIM) +
-                                 strlen (RECORD_DELIM) +
                                  + 1);
    if (!tmp) {
       free (newfield);
       return NULL;
    }
-   if (!*record)
-      memcpy (tmp, RECORD_DELIM, strlen (RECORD_DELIM) + 1);
 
-   tmp[strlen (tmp) - strlen (RECORD_DELIM)] = 0;
+   strcat (tmp, FIELD_DELIM);
+
    (*record) = tmp;
-   strcat (*record, FIELD_DELIM);
    strcat (*record, newfield);
-   strcat (*record, RECORD_DELIM);
 
    free (newfield);
 
@@ -141,6 +137,8 @@ bool cdb_field_del (char **record, const char *name)
 
    if (!*record || !name)
       return false;
+
+   record_len = strlen (*record);
 
    if (!(start = find_field (*record, name)))
       return false;
@@ -181,7 +179,14 @@ bool cdb_field_mod (char **record, const char *name, const char *value)
 
 char *cdb_field_find (char *record, const char *name)
 {
-   return strdup (find_field (record, name));
+   char *ret = NULL;
+   const char *fval = find_field (record, name);
+   if (!fval)
+      return NULL;
+
+   fval += strlen (name) + 1;
+
+   return strdup (fval);
 }
 
 void cdb_field_free (char *field)
