@@ -14,8 +14,8 @@ typedef int (cdb_filter_func_t) (const char *record_name,
 extern "C" {
 #endif
 
-   char **cdb_records_load (FILE *inf);
-   bool cdb_records_save (char **records, FILE *outf);
+   char **cdb_records_load (FILE *inf, uint32_t *app_version);
+   bool cdb_records_save (char **records, uint32_t app_version, FILE *outf);
    void cdb_records_free (char **records);
 
    char **cdb_records_filter (char **records, cdb_filter_func_t *fptr,

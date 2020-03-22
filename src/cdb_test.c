@@ -90,7 +90,7 @@ static bool write_new_file (void)
       }
    }
 
-   if (!(cdb_records_save (records, outf))) {
+   if (!(cdb_records_save (records, 9, outf))) {
       fprintf (stderr, "Failed to save records to [%s]: %m\n", TEST_FILE);
       goto errorexit;
    }
@@ -116,16 +116,19 @@ static bool read_file (void)
    char **records = NULL;
    FILE *inf = NULL;
    char **fields = NULL;
+   uint32_t app_version = 0;
 
    if (!(inf = fopen (TEST_FILE, "rt"))) {
       fprintf (stderr, "Failed to open [%s] for reading: %m\n", TEST_FILE);
       goto errorexit;
    }
 
-   if (!(records = cdb_records_load (inf))) {
+   if (!(records = cdb_records_load (inf, &app_version))) {
       fprintf (stderr, "Failed to load [%s]: file corrupt\n", TEST_FILE);
       goto errorexit;
    }
+
+   printf ("Loaded database (app_version=%u)\n", app_version);
 
    for (size_t i=0; records[i]; i++) {
       cdb_field_list_free (fields);

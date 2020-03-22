@@ -12,14 +12,14 @@
 
 char *strdup (const char *);
 
-char **cdb_records_load (FILE *inf)
+char **cdb_records_load (FILE *inf, uint32_t *app_version)
 {
    bool error = true;
 
    char **ret = NULL;
    size_t nrecs = 0,
           idx = 0;
-   int version = 0;
+   uint32_t version = 0;
    char *field = NULL;
    char *tmp = NULL;
 
@@ -28,13 +28,16 @@ char **cdb_records_load (FILE *inf)
       goto errorexit;
 
    line[0] = 0;
-   if ((fgets (line, MAX_LINE, inf))         &&
-       (tmp = strchr (line, ':'))            &&
-       (sscanf (&tmp[1], "%i", &version))==1 &&
-       version <= DATABASE_VERSION           &&
-       (fgets (line, MAX_LINE, inf))         &&
-       (tmp = strchr (line, ':'))            &&
-       (sscanf (&tmp[1], "%zu", &nrecs))) {
+   if ((fgets (line, MAX_LINE, inf))         && // DB Version
+       (tmp = strchr (line, ':'))            && // DB Version
+       (sscanf (&tmp[1], "%u", &version))==1 && // DB Version
+       version <= DATABASE_VERSION           && // DB Version
+       (fgets (line, MAX_LINE, inf))         && // Fields Version
+       (tmp = strchr (line, ':'))            && // Fields Version
+       (sscanf (&tmp[1], "%u", &version))    && // Fields Version
+       (fgets (line, MAX_LINE, inf))         && // Nrecs
+       (tmp = strchr (line, ':'))            && // Nrecs
+       (sscanf (&tmp[1], "%zu", &nrecs))) {     // Nrecs
       // SUCCESS
    } else {
       free (line);
@@ -53,6 +56,9 @@ char **cdb_records_load (FILE *inf)
          goto errorexit;
    }
 
+   if (app_version)
+      *app_version = version;
+
    error = false;
 
 errorexit:
@@ -67,7 +73,7 @@ errorexit:
 }
 
 
-bool cdb_records_save (char **records, FILE *outf)
+bool cdb_records_save (char **records,uint32_t app_version,  FILE *outf)
 {
    size_t nrecs = 0;
 
@@ -78,6 +84,7 @@ bool cdb_records_save (char **records, FILE *outf)
       nrecs++;
 
    fprintf (outf, "version: %i\n", DATABASE_VERSION);
+   fprintf (outf, "app-version: %u\n", app_version);
    fprintf (outf, "record count: %zu\n", nrecs);
 
    for (size_t i=0; records && records[i]; i++) {
