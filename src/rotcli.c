@@ -339,7 +339,7 @@ int main (int argc, char **argv)
    const char *filename = getenv ("file");
    msg = getenv ("message");
    if (!msg && filename) {
-      msg = readfile (filename); // TODO: Write this function
+      msg = readfile (filename);
    }
 
    const char *username = getenv ("user");
@@ -367,7 +367,11 @@ int main (int argc, char **argv)
       }
    }
 
-   issues = cdb_records_load (inf, &version);
+   if (!(issues = cdb_records_load (inf, &version))) {
+      PROG_ERR ("Failed to load database from [%s]: file corrupt\n", dbfile);
+      goto errorexit;
+   }
+
    fclose (inf);
    inf = NULL;
 
@@ -406,7 +410,7 @@ int main (int argc, char **argv)
          goto errorexit;
       }
 
-      msg = readfile (template); // TODO: Write this function
+      msg = readfile (template);
       remove (template);
 
       if (msg==NULL) {
