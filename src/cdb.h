@@ -6,9 +6,9 @@
 #include <stdint.h>
 #include <stdbool.h>
 
-typedef bool (cdb_filter_func_t) (const char *record_name,
-                                  const char *record_value,
-                                  const void *fptr_arg);
+typedef int (cdb_filter_func_t) (const char *record_name,
+                                 const char *record_value,
+                                 const void *fptr_arg);
 
 #ifdef __cplusplus
 extern "C" {

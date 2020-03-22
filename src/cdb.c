@@ -284,14 +284,13 @@ bool cdb_field_mod (char **record, const char *name, const char *value)
    }
 #endif
    if (!(cdb_field_add (record, name, value))) {
-      fprintf (stderr, "Failed to add [%s:%s]\n", name, value);
       return false;
    }
    if (!(cdb_field_del (record, name))) {
       fprintf (stderr, "Failed to remove [%s:%s]\n", name, value);
-      return false;
+      // return false; // TODO: Decide which is better
+      return true;
    }
-   fprintf (stderr, "Modified\n");
    return true;
 }
 
