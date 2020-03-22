@@ -17,25 +17,40 @@ char **cdb_records_load (FILE *inf)
    bool error = true;
 
    char **ret = NULL;
-   size_t nrecs = 0;
+   size_t nrecs = 0,
+          idx = 0;
+   int version = 0;
+   char *field = NULL;
+   char *tmp = NULL;
 
    char *line = malloc (MAX_LINE);
    if (!line)
       goto errorexit;
+
+   line[0] = 0;
+   if ((fgets (line, MAX_LINE, inf))         &&
+       (tmp = strchr (line, ':'))            &&
+       (sscanf (&tmp[1], "%i", &version))==1 &&
+       version <= DATABASE_VERSION           &&
+       (fgets (line, MAX_LINE, inf))         &&
+       (tmp = strchr (line, ':'))            &&
+       (sscanf (&tmp[1], "%zu", &nrecs))) {
+      // SUCCESS
+   } else {
+      free (line);
+      return NULL;
+   }
+
+   if (!(ret = calloc (nrecs + 1, sizeof *ret)))
+      return NULL;
 
    while (!feof (inf) && !ferror (inf) && (fgets (line, MAX_LINE, inf))) {
       char *eol = strchr (line, '\n');
       if (eol)
          *eol = 0;
 
-      char **tmp = realloc (ret, (nrecs + 2) * sizeof *tmp);
-      if (!tmp)
+      if (!(ret[idx++] = strdup (line)))
          goto errorexit;
-
-      ret = tmp;
-      if (!(ret[nrecs++] = strdup (line)))
-         goto errorexit;
-      ret[nrecs] = 0;
    }
 
    error = false;
@@ -54,10 +69,16 @@ errorexit:
 
 bool cdb_records_save (char **records, FILE *outf)
 {
+   size_t nrecs = 0;
+
    if (!outf)
       return false;
 
-   fprintf (outf, "%i", DATABASE_VERSION);
+   for (size_t i=0; records && records[i]; i++)
+      nrecs++;
+
+   fprintf (outf, "version: %i\n", DATABASE_VERSION);
+   fprintf (outf, "record count: %zu\n", nrecs);
 
    for (size_t i=0; records && records[i]; i++) {
       fprintf (outf, "%s" RECORD_DELIM, records[i]);
