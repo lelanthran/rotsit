@@ -26,6 +26,7 @@ extern "C" {
    bool cdb_field_add (char **record, const char *name, const char *value);
    bool cdb_field_mod (char **record, const char *name, const char *value);
    bool cdb_field_del (char **record, const char *name);
+   char *cdb_field_get (char *record, const char *name);
 
    char *cdb_field_find (char *record, const char *name);
    void cdb_field_free (char *field);

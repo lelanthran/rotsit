@@ -115,6 +115,7 @@ static bool read_file (void)
    bool error = true;
    char **records = NULL;
    FILE *inf = NULL;
+   char **fields = NULL;
 
    if (!(inf = fopen (TEST_FILE, "rt"))) {
       fprintf (stderr, "Failed to open [%s] for reading: %m\n", TEST_FILE);
@@ -126,9 +127,33 @@ static bool read_file (void)
       goto errorexit;
    }
 
+   for (size_t i=0; records[i]; i++) {
+      cdb_field_list_free (fields);
+      if (!(fields = cdb_field_list (records[i]))) {
+         fprintf (stderr, "Failed to get fields list[%s]\n", records[i]);
+         continue;
+      }
+      for (size_t j=0; fields[j]; j++) {
+         char *value = cdb_field_get (records[i], fields[j]);
+         if (!value) {
+            fprintf (stderr, "Failed to get field [%s]\n", fields[j]);
+            free (value);
+            goto errorexit;
+         }
+         printf ("Got field[%s] [%s]\n", fields[j], value);
+         free (value);
+      }
+   }
+
+   error = false;
+
 errorexit:
 
+   free (fields);
+
    cdb_records_free (records);
+   cdb_field_list_free (fields);
+
    if (inf)
       fclose (inf);
 
@@ -145,7 +170,7 @@ int main (int argc, char **argv)
    }
 
    if (!(read_file ())) {
-      fprintf (stderr, "reade test failure\n");
+      fprintf (stderr, "reader test failure\n");
       goto errorexit;
    }
 

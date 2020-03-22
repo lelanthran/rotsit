@@ -8,8 +8,49 @@
 #define RECORD_DELIM             "f\b\n"
 #define FIELD_DELIM              "f\b"
 
+#define MAX_LINE      (1024 * 1024 * 10)   // 10MB lines, max
 
 char *strdup (const char *);
+
+char **cdb_records_load (FILE *inf)
+{
+   bool error = true;
+
+   char **ret = NULL;
+   size_t nrecs = 0;
+
+   char *line = malloc (MAX_LINE);
+   if (!line)
+      goto errorexit;
+
+   while (!feof (inf) && !ferror (inf) && (fgets (line, MAX_LINE, inf))) {
+      char *eol = strchr (line, '\n');
+      if (eol)
+         *eol = 0;
+
+      char **tmp = realloc (ret, (nrecs + 2) * sizeof *tmp);
+      if (!tmp)
+         goto errorexit;
+
+      ret = tmp;
+      if (!(ret[nrecs++] = strdup (line)))
+         goto errorexit;
+      ret[nrecs] = 0;
+   }
+
+   error = false;
+
+errorexit:
+   free (line);
+
+   if (error) {
+      cdb_records_free (ret);
+      ret = NULL;
+   }
+
+   return ret;
+}
+
 
 bool cdb_records_save (char **records, FILE *outf)
 {
@@ -25,15 +66,20 @@ bool cdb_records_save (char **records, FILE *outf)
    return true;
 }
 
-void cdb_records_free (char **records)
+static void array_string_free (char **array)
 {
-   if (!records)
+   if (!array)
       return;
 
-   for (size_t i=0; records[i]; i++) {
-      free (records[i]);
+   for (size_t i=0; array[i]; i++) {
+      free (array[i]);
    }
-   free (records);
+   free (array);
+}
+
+void cdb_records_free (char **records)
+{
+   array_string_free (records);
 }
 
 char *cdb_record_add (char ***records, const char *record)
@@ -111,6 +157,9 @@ bool cdb_field_add (char **record, const char *name, const char *value)
       return NULL;
    }
 
+   if (!*record)
+      tmp[0] = 0;
+
    strcat (tmp, FIELD_DELIM);
 
    (*record) = tmp;
@@ -167,6 +216,44 @@ bool cdb_field_del (char **record, const char *name)
    return true;
 }
 
+char *cdb_field_get (char *record, const char *name)
+{
+   bool error = true;
+   char *ret = NULL;
+   const char *start = NULL;
+   const char *end = NULL;
+
+   if (!record || !name)
+      goto errorexit;
+
+   if (!(start = find_field (record, name)))
+      goto errorexit;
+
+   if (!(start = strchr (start, ':')))
+      goto errorexit;
+
+   start++;
+   if (!(end = strstr (start, FIELD_DELIM)))
+      goto errorexit;
+
+   size_t len = (size_t) (end - start);
+   if (!(ret = malloc (len + 1)))
+      goto errorexit;
+
+   strncpy (ret, start, len);
+   ret[len] = 0;
+
+   error = false;
+
+errorexit:
+   if (error) {
+      free (ret);
+      ret = NULL;
+   }
+
+   return ret;
+}
+
 bool cdb_field_mod (char **record, const char *name, const char *value)
 {
 #if 0
@@ -205,6 +292,58 @@ void cdb_field_free (char *field)
    free (field);
 }
 
+char **cdb_field_list (char *record)
+{
+   bool error = true;
+   char **ret = NULL;
+   size_t nfields = 0;
+   char *field = NULL;
+
+   if (!record)
+      goto errorexit;
+
+   field = record;
+
+   while ((field = strstr (field, FIELD_DELIM))!=NULL) {
+      field += strlen (FIELD_DELIM);
+      char *value = strchr (field, ':');
+      if (!value)
+         break;
+
+      size_t len = (size_t)(value - field);
+      char *name = malloc (len + 1);
+      if (!name)
+         goto errorexit;
+
+      strncpy (name, field, len);
+      name[len] = 0;
+
+      char **tmp = realloc (ret, (nfields + 2) * sizeof *tmp);
+      if (!tmp) {
+         free (name);
+         goto errorexit;
+      }
+
+      ret = tmp;
+      ret[nfields++] = name;
+      ret[nfields] = NULL;
+   }
+
+   error = false;
+
+errorexit:
+   if (error) {
+      cdb_field_list_free (ret);
+      ret = NULL;
+   }
+
+   return ret;
+}
+
+void cdb_field_list_free (char **field_names)
+{
+   array_string_free (field_names);
+}
 
 
 
