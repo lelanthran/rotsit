@@ -22,6 +22,7 @@ extern "C" {
                                               const void *fptr_arg);
 
    char *cdb_record_add (char ***records, const char *record);
+   bool cdb_record_print (char *record, FILE *outf);
 
    bool cdb_field_add (char **record, const char *name, const char *value);
    bool cdb_field_mod (char **record, const char *name, const char *value);

@@ -3,21 +3,27 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
+#include <time.h>
 
-#include "rotsit.h"
+#include <unistd.h>
 
-#include "xerror/xerror.h"
-#include "xstring/xstring.h"
-#include "xcfg/xcfg.h"
-#include "xfile/xfile.h"
+#include "cdb.h"
+
+#define PROG_ERR(...)      do {\
+   fprintf (stderr, "[%s:%i] ", __FILE__, __LINE__);\
+   fprintf (stderr, __VA_ARGS__);\
+} while (0)
 
 #define EDITORVAR          "EDITOR"
 
 #ifdef PLATFORM_WINDOWS
+#define ENV_USERNAME    "USERNAME"
 #define UNAMEVAR        "\%USERNAME\%"
 #define EDITOR          "\%EDITOR\%"
 #define ED_DEFAULT      "notepad.exe"
 #else
+#define ENV_USERNAME    "USER"
 #define UNAMEVAR        "$USER"
 #define EDITOR          "$EDITOR"
 #define ED_DEFAULT      "vi"
@@ -39,131 +45,156 @@ static uint32_t my_rand (void)
    return (uint32_t) (my_seed & 0xffffffff);
 }
 
-// All the user commands are handled by functions that follow this
-// specification.
-typedef uint32_t (*cmdfptr_t) (rotsit_t *, char *, const char **);
-
-// All the user commands
-static uint32_t cmd_add (rotsit_t *rs, char *msg, const char **args)
+static char *readfile (const char *filename)
 {
-   uint32_t ret = 0x000001ff;
-   args = args;
+   char *ret = NULL;
+   size_t nbytes = 0;
+   int c;
 
-   my_setseed (msg);
+   FILE *inf = fopen (filename, "rt");
+   if (!inf)
+      return NULL;
 
-   XLOG ("Creating new record (This may take a few minutes)\n");
+   while (!ferror (inf) && !feof (inf) && ((c = fgetc (inf))!=EOF)) {
+      char *tmp = realloc (ret, nbytes + 2);
+      if (!tmp) {
+         PROG_ERR ("Out of memory error reading [%s]\n", filename);
+         free (ret);
+         fclose (inf);
+         return NULL;
+      }
 
-   rotrec_t *rec = rotrec_new (msg);
-   if (!rec) {
-      XERROR ("Unable to open issue [%s]\n", msg);
-      goto errorexit;
-   }
-
-   XLOG ("Added new issue: %s\n", rotrec_get_field (rec, RF_GUID));
-
-   if (!rotsit_add_record (rs, rec)) {
-      XERROR ("Unable to add issue to database [%s]\n", msg);
-      goto errorexit;
-   }
-
-   ret = 0x00000100;
-
-errorexit:
-   if (ret & 0xff) {
-      rotrec_del (rec);
+      ret = tmp;
+      ret[nbytes++] = c;
+      ret[nbytes] = 0;
    }
    return ret;
 }
 
-static rotrec_t *safe_rotrec_by_id (rotsit_t *rs, const char **args)
+
+// All the user commands are handled by functions that follow this
+// specification.
+typedef uint32_t (*cmdfptr_t) (char **, char *, const char **);
+
+// All the user commands
+static uint32_t cmd_add (char **rs, char *msg, const char **args)
+{
+   uint32_t ret = 0x000001ff;
+   args = args;
+   char *rec = NULL;
+
+   my_setseed (msg);
+
+   PROG_ERR ("Creating new record (This may take a few minutes)\n");
+
+   // ret = 0x00000100;
+
+errorexit:
+   if (ret & 0xff) {
+      free (rec);
+   }
+   return ret;
+}
+
+static char *safe_rotrec_by_id (char **rs, const char **args)
 {
    const char *id = args[1];
    const char *f = args[0];
-   rotrec_t *rr = NULL;
+   char *ret = NULL;
 
    if (!id) {
-      XERROR ("Expected an id for function [%s], no id specified\n", f);
+      PROG_ERR ("Expected an id for function [%s], no id specified\n", f);
       return NULL;
    }
 
-   rr = rotsit_find_by_id (rs, id);
-   if (!rr) {
-      XERROR ("No record found with id [%s] in function [%s]\n", id, f);
-   }
-
-   return rr;
+   return ret;
 }
 
-static uint32_t cmd_show (rotsit_t *rs, char *msg, const char **args)
+static uint32_t cmd_show (char **rs, char *msg, const char **args)
 {
    msg = msg;
 
-   if (!rotrec_dump (safe_rotrec_by_id (rs, args), stdout)) {
+   if (!cdb_record_print (safe_rotrec_by_id (rs, args), stdout)) {
       return 0xff;
    }
 
-   return 0;
+   return 0xff;
 }
 
-static uint32_t cmd_comment (rotsit_t *rs, char *msg, const char **args)
+static uint32_t cmd_comment (char **rs, char *msg, const char **args)
 {
    my_setseed (msg);
 
-   if (!rotrec_add_comment (safe_rotrec_by_id (rs, args), msg)) {
+   /*
+   if (!cdb_add_comment (safe_rotrec_by_id (rs, args), msg)) {
       return 0x00ff;
    }
+   */
 
-   return 0x0100;
+   return 0x01ff;
 }
 
-static uint32_t cmd_dup (rotsit_t *rs, char *msg, const char **args)
+static uint32_t cmd_dup (char **rs, char *msg, const char **args)
 {
    msg = msg;
 
    if (!args[1] || !args[2]) {
-      XERROR ("Marking duplicate requires two IDs\n");
+      PROG_ERR ("Marking duplicate requires two IDs\n");
       return 0x00ff;
    }
 
+   /*
    if (!rotrec_dup (safe_rotrec_by_id (rs, args), args[2])) {
       return 0x00ff;
    }
+   */
 
-   return 0x0100;
+   return 0x01ff;
 }
 
-static uint32_t cmd_reopen (rotsit_t *rs, char *msg, const char **args)
+static uint32_t cmd_reopen (char **rs, char *msg, const char **args)
 {
+   /*
    if (!rotrec_reopen (safe_rotrec_by_id (rs, args), msg)) {
       return 0x00ff;
    }
+   */
 
-   return 0x0100;
+   return 0x01ff;
 }
 
-static uint32_t cmd_close (rotsit_t *rs, char *msg, const char **args)
+static uint32_t cmd_close (char **rs, char *msg, const char **args)
 {
+   /*
    if (!rotrec_close (safe_rotrec_by_id (rs, args), msg)) {
       return 0x00ff;
    }
-   return 0x0100;
+   */
+   return 0x01ff;
 }
 
-static uint32_t cmd_export (rotsit_t *rs, char *msg, const char **args)
+static uint32_t cmd_export (char **rs, char *msg, const char **args)
 {
    msg = msg;
    args = args;
 
-   uint32_t numrecs = rotsit_count_records (rs);
+   uint32_t numrecs = 0;
 
+   for (size_t i=0; rs && rs[i]; i++) {
+      numrecs++;
+   }
+
+   /*
    for (uint32_t i=0; i<numrecs; i++) {
       rotrec_dump (rotsit_get_record (rs, i), stdout);
    }
+   */
 
-   return 0x0000;
+   return 0x00ff;
 }
 
-static uint32_t cmd_list (rotsit_t *rs, char *msg, const char **args)
+/*
+static uint32_t cmd_list (char **rs, char *msg, const char **args)
 {
    msg = msg;
 
@@ -172,13 +203,13 @@ static uint32_t cmd_list (rotsit_t *rs, char *msg, const char **args)
    printf (" *****************************************************\n");
 
    if (!args[1]) {
-      XERROR ("No search expression specified\n");
+      PROG_ERR ("No search expression specified\n");
       return 0x00ff;
    }
 
    rotrec_t **results = rotsit_filter (rs, args[1]);
    if (!results) {
-      XERROR ("Internal error in filter function\n");
+      PROG_ERR ("Internal error in filter function\n");
       return 0x00ff;
    }
 
@@ -188,6 +219,7 @@ static uint32_t cmd_list (rotsit_t *rs, char *msg, const char **args)
    free (results);
    return 0x0000;
 }
+*/
 
 static bool needs_message (const char *command)
 {
@@ -216,7 +248,7 @@ static cmdfptr_t find_cmd (const char *name)
       { "reopen",    cmd_reopen  },
       { "close",     cmd_close   },
       { "export",    cmd_export  },
-      { "list",      cmd_list    },
+      // { "list",      cmd_list    },
    };
 
    for (size_t i=0; i<sizeof cmds/sizeof cmds[0]; i++) {
@@ -253,57 +285,6 @@ void print_help_msg (void)
 "  dup <id1> <id2>   Marks id1 as a duplicate of id2, "EDITOR" used.",
 "  close <id>        Closes issue with id, "EDITOR" used.",
 "  export            Plain-text export of every issue",
-"  list <listexpr>   Short-form list of all the entries matching listexpr",
-"",
-"<listexpr>",
-"  List expression is a single string that specifies which records must",
-"  be in the results set. Fields that can be used in the expression are",
-"  listed below along with a description of each field.",
-"",
-"  Each expression consists of exactly two terms and a comparison operator",
-"  optionally enclosed by brackets. For example both of the following are",
-"  equivalent expressions:",
-"",
-"     opened-by == jsmith@example.com",
-"     (opened-by == jsmith@example.com)",
-"",
-"  The brackets are used to enforce precedence. Where brackets are missing",
-"  the default precedence is to apply the operators from right to left,",
-"  working back from the end of the expression. When there is more than",
-"  two operands and more than one operator brackets are not optional and",
-"  must be used to group the three or more operands into pairs. For example",
-"",
-"opened-by == jsmith@example.com & closed-by jsmith@example.com      [Wrong]",
-"(opened-by == jsmith@example.com) & closed-by jsmith@example.com    [Right]",
-"",
-"",
-"  OPERATOR LIST",
-"     <        Less than",
-"     >        Greater than",
-"     <=       Less than or equal to",
-"     >=       Greater than or equal to",
-"     ==       Equal to (matches keywords or dates exactly",
-"     !=       Not equal to",
-"     |        Logical OR",
-"     &        Logical AND",
-"",
-"",
-"  FIELD LIST",
-"  guid              The GUID field",
-"  order             The order field",
-"  opened_by         User who opened the issue",
-"  opened_on         Date/time when issue was opened",
-"  closed_by         User who closed the issue",
-"  closed_on         Date/time when issue was closed",
-"  assigned_by       User who set the assignment of the issue",
-"  assigned_to       User who is responsible for closing the issue",
-"  assigned_on       Date when the assignment was performed",
-"  status            Match the status (OPEN/CLOSED)",
-"  message           Case-insensitive match of keyword in OPEN message",
-"  closed_message    Case-insensitive match of keyword in the CLOSE message",
-"  comment           Case-insensitive match of keyword in comment",
-"  allwords          Case-insensitive match of keyword anywhere in issue",
-"  alltimes          Matches any date in any field",
 "",
 "",
 "Copyright Lelanthran Manickum, 2018 (lelanthran@gmail.com)",
@@ -321,126 +302,86 @@ int main (int argc, char **argv)
    argc = argc;
    int ret = EXIT_FAILURE;
 
+   uint32_t version = 0;
    char *msg = NULL;
-   char *tmp_fname = NULL;
    char *edit_cmd = NULL;
    FILE *inf = NULL;
-   rotsit_t *issues = NULL;
+   char **issues = NULL;
    bool issues_dirty = false;
-   char *fcontents = NULL;
-
-   // Set the options we want to read to default values
-   static const struct {
-      const char *name;
-      const char *def;
-   } options[] = {
-      { "help",      NULL },
-      { "message",   NULL },
-      { "file",      NULL },
-      { "user",      NULL },
-      { "dbfile",    "issues.sitdb" },
-   };
 
    my_seed = time (NULL);
 
-   for (size_t i=0; i<sizeof options/sizeof options[0]; i++) {
-      xcfg_configure ("none", options[i].name, "none", options[i].def);
-   }
-
-   if (xcfg_from_array ("none", (const char **)argv, "c/line")==(size_t)-1) {
-      XERROR ("Error parsing command-line\n");
-      goto errorexit;
+   for (size_t i=1; argv[i]; i++) {
+      if ((memcmp (argv[i], "--", 2))==0) {
+         char *name = &argv[i][2];
+         char *value = strchr (name, '=');
+         if (value) {
+            *value++ = 0;
+         } else {
+            value = "";
+         }
+         setenv (name, value, 1);
+         PROG_ERR ("Set [%s:%s]\n", name, value);
+      }
    }
 
    // Check which options are set
-   const char *fastrand = xcfg_get ("none", "fastrand");
-   if (fastrand) {
-      rotsit_user_rand = my_rand;
+   if (getenv ("fastrand")) {
+      // rotsit_user_rand = my_rand;
    }
 
-   const char *help_requested = xcfg_get ("none", "help");
-   if (help_requested) {
+   if (getenv ("help")) {
       ret = EXIT_SUCCESS;
       print_help_msg ();
       goto errorexit;
    }
 
-   const char *filename = xcfg_get ("none", "file");
-   msg = xstr_dup (xcfg_get ("none", "message"));
+   const char *filename = getenv ("file");
+   msg = getenv ("message");
    if (!msg && filename) {
-      msg = xstr_readfile (filename);
+      msg = readfile (filename); // TODO: Write this function
    }
 
-   const char *username = xcfg_get ("none", "user");
+   const char *username = getenv ("user");
    if (username) {
-      char *tmp = xstr_cat (ENV_USERNAME, "=", username, NULL);
-      if (!tmp) {
-         XERROR ("Out of memory\n");
-         goto errorexit;
-      }
-
-      int putenv (char *);
-
-      putenv (tmp);
-      // free (tmp);
+      setenv (ENV_USERNAME, username, 1);
    }
 
-   const char *dbfile = xcfg_get ("none", "dbfile");
-   if (!dbfile || !*dbfile) {
-      XERROR ("Missing option dbfile. Did you override the default "
-              "using --dbfile?\n");
-      goto errorexit;
-   }
+   const char *dbfile = getenv ("dbfile") ? getenv ("dbfile") : "issues.sitdb";
 
    inf = fopen (dbfile, "rb");
    if (!inf) {
       inf = fopen (dbfile, "wb");
       if (!inf) {
-         XERROR ("Unable to create database file [%s]\n", dbfile);
+         PROG_ERR ("Unable to create database file [%s]\n", dbfile);
+         goto errorexit;
+      }
+      if (!(cdb_records_save (NULL, 1, inf))) {
+         PROG_ERR ("Failed to create database file [%s]\n", dbfile);
+         goto errorexit;
+      }
+      fclose (inf);
+      if (!(inf = fopen (dbfile, "rb"))) {
+         PROG_ERR ("Failed to reopen [%s]: %m\n", dbfile);
          goto errorexit;
       }
    }
+
+   issues = cdb_records_load (inf, &version);
    fclose (inf);
    inf = NULL;
 
-   fcontents = xstr_readfile (dbfile);
-   if (!fcontents) {
-      XERROR ("Unable to read issues from [%s]\n", dbfile);
-      goto errorexit;   // TODO: Double check this - might return NULL for
-                        // empty file and we must be able to work with an
-                        // empty file.
-   }
-
-   issues = rotsit_parse (fcontents);
-
-   // Check which command was requested - the first non-option argument
-   // is a command
-   size_t cmdidx = (size_t)-1;
-   for (size_t i=1; argv[i]; i++) {
-
-      if (argv[i][0]=='-' && argv[i][1]=='-')
-         continue;
-
-      cmdidx = i;
-      break;
-   }
-
-   if (cmdidx==(size_t)-1) {
-      XERROR ("No command specified. Try using --help\n");
-      goto errorexit;
-   }
-
-   cmdfptr_t cmdfptr = find_cmd (argv[cmdidx]);
+   cmdfptr_t cmdfptr = find_cmd (argv[1]);
 
    if (!cmdfptr) {
-      XERROR ("Command [%s] not recognised as a command. Try --help\n",
-               argv[cmdidx]);
+      PROG_ERR ("Command [%s] not recognised as a command. Try --help\n",
+               argv[1]);
       goto errorexit;
    }
 
    // If command specified needs a message, check that we have a message
    // or start the EDITOR so that the user can write a message.
-   if (needs_message (argv[cmdidx]) && !msg) {
+   if (needs_message (argv[1]) && !msg) {
       // Use a default editor. If environment editor exists, use that
       // instead. Either way there will be a legit string in editor.
       const char *editor = ED_DEFAULT;
@@ -449,29 +390,31 @@ int main (int argc, char **argv)
          editor = env_editor;
       }
 
-      tmp_fname = xfile_tmpname (NULL, NULL);
-      if (!tmp_fname) {
-         XERROR ("Unable to create a temporary file, aborting\n:%m\n");
+      char template[] = "tempfile.XXXXXX";
+      int fd = mkstemp (template);
+      if (fd < 0) {
+         PROG_ERR ("Failed to create temporary file [%s]: %m\n", template);
          goto errorexit;
       }
-      edit_cmd = xstr_cat (editor, " ", tmp_fname, NULL);
-      if (!edit_cmd) {
-         XERROR ("Out of memory\n");
-         goto errorexit;
-      }
+      close (fd);
+
+      static char edit_cmd[4096];
+      snprintf (edit_cmd, sizeof edit_cmd, "%s %s", editor, template);
 
       if (system (edit_cmd)!=0) {
-         XERROR ("Failed to run editor [%s]\n", edit_cmd);
+         PROG_ERR ("Failed to run editor [%s]\n", edit_cmd);
          goto errorexit;
       }
 
-      msg = xstr_readfile (tmp_fname);
+      msg = readfile (template); // TODO: Write this function
+      remove (template);
+
       if (msg==NULL) {
-         XERROR ("Out of memory error\n");
+         PROG_ERR ("Out of memory error\n");
          goto errorexit;
       }
       if (*msg==0) {
-         XERROR ("No message specified, aborting\n");
+         PROG_ERR ("No message specified, aborting\n");
          goto errorexit;
       }
    }
@@ -480,9 +423,9 @@ int main (int argc, char **argv)
    // ret[0] = return status (0=success)
    // ret[1] = object now dirty, command mutated the object
    // ret[2], ret[3] = RFU
-   uint32_t result = cmdfptr (issues, msg, (const char **)&argv[cmdidx]);
+   uint32_t result = cmdfptr (issues, msg, (const char **)&argv[2]);
    if (result & 0xff) {
-      XERROR ("Command [%s] returned error 0x%02x\n", argv[cmdidx],
+      PROG_ERR ("Command [%s] returned error 0x%02x\n", argv[1],
                                                       result & 0xff);
       goto errorexit;
    }
@@ -500,23 +443,16 @@ errorexit:
    if (issues_dirty) {
       FILE *outf = fopen (dbfile, "wb");
       if (!outf) {
-         XERROR ("Unable to write file [%s]: %m\n", dbfile);
+         PROG_ERR ("Unable to write file [%s]: %m\n", dbfile);
       } else {
-         rotsit_write (issues, outf);
+         cdb_records_save (issues, version, outf);
          fclose (outf);
       }
    }
 
    free (msg);
-   if (tmp_fname) {
-      xfile_rm (tmp_fname, "r");
-      free (tmp_fname);
-   }
    free (edit_cmd);
-   free (fcontents);
-   xerror_set_logfile (NULL);
-   rotsit_del (issues);
-   xcfg_shutdown ();
+   cdb_records_free (issues);
    return ret;
 }
 

@@ -73,7 +73,7 @@ errorexit:
 }
 
 
-bool cdb_records_save (char **records,uint32_t app_version,  FILE *outf)
+bool cdb_records_save (char **records, uint32_t app_version, FILE *outf)
 {
    size_t nrecs = 0;
 
@@ -144,6 +144,21 @@ errorexit:
    }
 
    return newrec;
+}
+
+bool cdb_record_print (char *record, FILE *outf)
+{
+   if (!outf)
+      outf = stdout;
+
+   for (size_t i=0; record[i]; i++) {
+      if (record[i] == '\b')
+         fputc ('\n', outf);
+      else
+         fputc (record[i], outf);
+   }
+
+   return true;
 }
 
 static char *make_field (const char *name, const char *value)
