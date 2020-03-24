@@ -20,7 +20,6 @@ char **cdb_records_load (FILE *inf, uint32_t *app_version)
    size_t nrecs = 0,
           idx = 0;
    uint32_t version = 0;
-   char *field = NULL;
    char *tmp = NULL;
 
    char *line = malloc (MAX_LINE);
@@ -229,7 +228,6 @@ static char *find_field (char *record, const char *name)
 
 bool cdb_field_del (char **record, const char *name)
 {
-   char *newrec = NULL;
    char *start = NULL,
         *end = NULL;
 
@@ -319,7 +317,6 @@ bool cdb_field_mod (char **record, const char *name, const char *value)
 
 char *cdb_field_find (char *record, const char *name)
 {
-   char *ret = NULL;
    const char *fval = find_field (record, name);
    if (!fval)
       return NULL;
