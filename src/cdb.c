@@ -43,10 +43,11 @@ char **cdb_records_load (FILE *inf, uint32_t *app_version)
       return NULL;
    }
 
-   if (!(ret = calloc (nrecs + 1, sizeof *ret)))
+   if (!(ret = calloc (nrecs + 2, sizeof *ret)))
       return NULL;
 
-   while (!feof (inf) && !ferror (inf) && (fgets (line, MAX_LINE, inf))) {
+   while (!feof (inf) && !ferror (inf) && idx < nrecs &&
+            (fgets (line, MAX_LINE, inf))) {
       char *eol = strchr (line, '\n');
       if (eol)
          *eol = 0;
@@ -150,7 +151,7 @@ bool cdb_record_print (char *record, FILE *outf)
    if (!outf)
       outf = stdout;
 
-   for (size_t i=0; record[i]; i++) {
+   for (size_t i=0; record && record[i]; i++) {
       if (record[i] == '\b')
          fputc ('\n', outf);
       else
@@ -158,6 +159,22 @@ bool cdb_record_print (char *record, FILE *outf)
    }
 
    return true;
+}
+
+char *cdb_record_find (char **records, const char *name, const char *value)
+{
+   size_t len = strlen (value);
+   for (size_t i=0; records && records[i]; i++) {
+      char *val = cdb_field_get (records[i], name);
+      if (val) {
+         if ((strncmp (val, value, len))==0) {
+            free (val);
+            return strdup (records[i]);
+         }
+         free (val);
+      }
+   }
+   return NULL;
 }
 
 static char *make_field (const char *name, const char *value)

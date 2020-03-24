@@ -5,9 +5,11 @@
 #include <stdlib.h>
 #include <string.h>
 #include <time.h>
+#include <inttypes.h>
 
 #include <unistd.h>
 
+#include "rotsit.h"
 #include "cdb.h"
 
 #define PROG_ERR(...)      do {\
@@ -28,6 +30,9 @@
 #define EDITOR          "$EDITOR"
 #define ED_DEFAULT      "vi"
 #endif
+
+#define SUCCESS         (1 << 0)
+#define SAVE_REC        (1 << 1)
 
 // For testing only
 static uint64_t my_seed = 1;
@@ -79,46 +84,44 @@ typedef uint32_t (*cmdfptr_t) (char **, char *, const char **);
 // All the user commands
 static uint32_t cmd_add (char **rs, char *msg, const char **args)
 {
-   uint32_t ret = 0x000001ff;
    args = args;
-   char *rec = NULL;
 
    my_setseed (msg);
 
    PROG_ERR ("Creating new record (This may take a few minutes)\n");
-
-   // ret = 0x00000100;
-
-errorexit:
-   if (ret & 0xff) {
-      free (rec);
+   if (!(rotsit_issue_add (&rs, msg))) {
+      PROG_ERR ("Failed to add issue (possible out of memory condition): %m\n");
+      return 0;
    }
-   return ret;
+
+   return SAVE_REC | SUCCESS;
 }
 
-static char *safe_rotrec_by_id (char **rs, const char **args)
+static char *find_by_id (char **rs, const char **args)
 {
    const char *id = args[1];
    const char *f = args[0];
-   char *ret = NULL;
 
    if (!id) {
-      PROG_ERR ("Expected an id for function [%s], no id specified\n", f);
+      PROG_ERR ("Expected an id for command [%s], no id specified\n", f);
       return NULL;
    }
 
-   return ret;
+   return cdb_record_find (rs, FIELD_GUID, id);
 }
 
 static uint32_t cmd_show (char **rs, char *msg, const char **args)
 {
    msg = msg;
+   char *rec = NULL;
 
-   if (!cdb_record_print (safe_rotrec_by_id (rs, args), stdout)) {
-      return 0xff;
+   if (!(cdb_record_print (rec = find_by_id (rs, args), stdout))) {
+      return 0;
    }
 
-   return 0xff;
+   free (rec);
+
+   return SUCCESS;
 }
 
 static uint32_t cmd_comment (char **rs, char *msg, const char **args)
@@ -126,7 +129,7 @@ static uint32_t cmd_comment (char **rs, char *msg, const char **args)
    my_setseed (msg);
 
    /*
-   if (!cdb_add_comment (safe_rotrec_by_id (rs, args), msg)) {
+   if (!cdb_add_comment (find_by_id (rs, args), msg)) {
       return 0x00ff;
    }
    */
@@ -144,7 +147,7 @@ static uint32_t cmd_dup (char **rs, char *msg, const char **args)
    }
 
    /*
-   if (!rotrec_dup (safe_rotrec_by_id (rs, args), args[2])) {
+   if (!rotrec_dup (find_by_id (rs, args), args[2])) {
       return 0x00ff;
    }
    */
@@ -155,7 +158,7 @@ static uint32_t cmd_dup (char **rs, char *msg, const char **args)
 static uint32_t cmd_reopen (char **rs, char *msg, const char **args)
 {
    /*
-   if (!rotrec_reopen (safe_rotrec_by_id (rs, args), msg)) {
+   if (!rotrec_reopen (find_by_id (rs, args), msg)) {
       return 0x00ff;
    }
    */
@@ -166,7 +169,7 @@ static uint32_t cmd_reopen (char **rs, char *msg, const char **args)
 static uint32_t cmd_close (char **rs, char *msg, const char **args)
 {
    /*
-   if (!rotrec_close (safe_rotrec_by_id (rs, args), msg)) {
+   if (!rotrec_close (find_by_id (rs, args), msg)) {
       return 0x00ff;
    }
    */
@@ -427,14 +430,14 @@ int main (int argc, char **argv)
    // ret[0] = return status (0=success)
    // ret[1] = object now dirty, command mutated the object
    // ret[2], ret[3] = RFU
-   uint32_t result = cmdfptr (issues, msg, (const char **)&argv[2]);
-   if (result & 0xff) {
+   uint32_t result = cmdfptr (issues, msg, (const char **)&argv[1]);
+   if (!(result & SUCCESS)) {
       PROG_ERR ("Command [%s] returned error 0x%02x\n", argv[1],
                                                       result & 0xff);
       goto errorexit;
    }
 
-   if ((result >> 8) & 0xff) {
+   if (result & SAVE_REC) {
       issues_dirty = true;
    }
 
